@@ -1,24 +1,43 @@
 import telebot
 import requests
 import re
+import urllib.parse
+from telebot import types
 
-# التوكن الجديد الخاص ببوتك تم وضعه هنا مباشرة
+# التوكن الخاص ببوتك
 API_TOKEN = '8732953077:AAGOENe3KART6vQGAUxCv3uRCobxVdOahHM'
 bot = telebot.TeleBot(API_TOKEN)
 
-# قاموس سريع لأشهر العملات الرقمية لزيادة سرعة الرد وعدم حدوث ضغط على الـ API
+# قاموس سريع لأشهر العملات الرقمية
 CRYPTO_MAP = {
     'btc': 'bitcoin', 'eth': 'ethereum', 'bnb': 'binancecoin', 'sol': 'solana',
     'usdt': 'tether', 'xrp': 'ripple', 'ada': 'cardano', 'doge': 'dogecoin',
     'trx': 'tron', 'dot': 'polkadot', 'ltc': 'litecoin', 'shib': 'shiba-inu',
     'avax': 'avalanche-2', 'link': 'chainlink', 'uni': 'uniswap', 'atom': 'cosmos',
-    'xlm': 'stellar', 'fil': 'filecoin', 'etc': 'ethereum-classic', 'hbar': 'hbar',
+    'xlm': 'stellar', 'fil': 'filecoin', 'etc': 'ethereum-classic', 'hbar': 'hedera-hashgraph',
     'apt': 'aptos', 'sui': 'sui', 'near': 'near', 'op': 'optimism', 'arb': 'arbitrum',
     'ldo': 'lido-dao', 'fet': 'fetch-ai', 'inj': 'injective-protocol', 'render': 'render-token',
     'pepe': 'pepe', 'floki': 'floki', 'bonk': 'bonk', 'wif': 'dogwifhat', 'ton': 'the-open-network'
 }
 
-# دالة برمجية للبحث الديناميكي عن ID العملة الرقمية لو مش موجودة في القاموس السريع
+# قاموس أعلام الدول للعملات المحلية (مع حذف وتجنب الكيان تماماً)
+FLAG_MAP = {
+    'EGP': '🇪🇬', 'USD': '🇺🇸', 'SAR': '🇸🇦', 'AED': '🇦🇪', 'EUR': '🇪🇺', 
+    'KWD': '🇰🇼', 'QAR': '🇶🇦', 'BHD': '🇧🇭', 'OMR': '🇴🇲', 'JOD': '🇯🇴', 
+    'LBP': '🇱🇧', 'IQD': '🇮🇶', 'LYD': '🇱🇾', 'MAD': '🇲🇦', 'DZD': '🇩🇿', 
+    'TND': '🇹🇳', 'YER': '🇾🇪', 'GBP': '🇬🇧', 'JPY': '🇯🇵', 'CAD': '🇨🇦', 
+    'AUD': '🇦🇺', 'CHF': '🇨🇭', 'CNY': '🇨🇳', 'RUB': '🇷🇺', 'TRY': '🇹🇷'
+}
+
+def get_flag(currency_code):
+    """دالة لجلب علم العملة لو محلي، أو إرجاع إيموجي مميز لو رقمي"""
+    code = currency_code.upper().strip()
+    if code in FLAG_MAP:
+        return FLAG_MAP[code]
+    elif code.lower() in CRYPTO_MAP:
+        return '🪙'
+    return '🏳️'
+
 def get_crypto_id(symbol):
     symbol = symbol.lower().strip()
     if symbol in CRYPTO_MAP:
@@ -35,7 +54,6 @@ def get_crypto_id(symbol):
     except Exception:
         return None
 
-# الدالة الشاملة لتحويل أي عملة في العالم لعملة تانية
 def convert_any_currency(amount, from_currency, to_currency):
     from_curr = from_currency.lower().strip()
     to_curr = to_currency.upper().strip()
@@ -50,7 +68,7 @@ def convert_any_currency(amount, from_currency, to_currency):
                 price_per_unit = response[crypto_id][to_curr.lower()]
                 return price_per_unit, price_per_unit * amount
 
-        # 2. فحص لو العملة محلية لكل دول العالم
+        # 2. فحص لو العملة محلية
         url = "https://open.er-api.com/v6/latest/USD"
         response = requests.get(url).json()
         rates = response.get('rates', {})
@@ -65,44 +83,60 @@ def convert_any_currency(amount, from_currency, to_currency):
         print(f"Error in conversion: {e}")
         return None, None
 
-# أمر /start و /help بالصيغة العربية والإنجليزية مدموجين معاً
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     welcome_text = (
         "👋 **أهلاً بك في بوت ڤلوكس | VLUX**\n"
-        "اكتب أي عملة أنت عايزها وأنا هجيبلك سعرها.\n\n"
+        "اكتب أي عملة أنت عايزها وأنا هجيبلك سعرها بالبلد بتاعتها.\n\n"
         "💡 **مثال:** `1 btc egp`\n"
         "--- --- --- --- --- --- --- ---\n"
         "👋 **Welcome to VLUX Bot**\n"
         "Type any currency you want and I will get its price for you.\n\n"
         "💡 **Example:** `1 btc egp`"
     )
-    bot.reply_to(message, welcome_text, parse_mode='Markdown')
+    
+    preset_msg = "عايز بوت زي ده"
+    encoded_msg = urllib.parse.quote(preset_msg)
+    
+    dev_url = "https://t.me/Youssef_Abdelkarim"
+    create_bot_url = f"https://t.me/share/url?url={dev_url}&text={encoded_msg}"
+    
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    btn_developer = types.InlineKeyboardButton("👨‍💻 مطور البوت | Developer", url=dev_url)
+    btn_create_bot = types.InlineKeyboardButton("🤖 شراء أو برمجة بوت", url=create_bot_url)
+    
+    markup.add(btn_developer, btn_create_bot)
+    bot.reply_to(message, welcome_text, parse_mode='Markdown', reply_markup=markup)
 
-# قراءة وفك شفرة الرسائل في الخاص والجروبات تلقائياً
 @bot.message_handler(func=lambda message: True)
 def convert_currency(message):
     text = message.text.strip().lower()
     
-    # فك الرسالة بذكاء: (الرقم) ثم (العملة 1) ثم مسافة ثم (العملة 2)
+    # الفحص الفوري المظبوط بالترتيب اللي طلبته بالظبط
+    if 'ils' in text:
+        bot.reply_to(message, "كسم إسرائيل : فلسطين حرة 🇵🇸✊", parse_mode='Markdown')
+        return
+
     match = re.match(r"([0-9.]+)\s*([a-z0-9\-]+)\s+([a-z]+)", text)
     
     if match:
         amount = float(match.group(1))
-        from_currency = match.group(2)
-        to_currency = match.group(3)
+        from_currency = message.text.split()[1] # للحفاظ على حالة الأحرف الأصلية عند جلب العلم
+        to_currency = message.text.split()[2]
         
-        # تنفيذ التحويل الشامل
+        # جلب أعلام العملات تلقائياً
+        from_flag = get_flag(from_currency)
+        to_flag = get_flag(to_currency)
+        
         price_unit, total_price = convert_any_currency(amount, from_currency, to_currency)
         
         if price_unit is not None:
-            # تنسيق الأرقام بشكل احترافي للجروبات
             formatted_unit = "{:,.4f}".format(price_unit)
             formatted_total = "{:,.2f}".format(total_price)
             
             response_text = (
-                f"🪙 **من عملة:** {from_currency.upper()}\n"
-                f"🎯 **إلى عملة:** {to_currency.upper()}\n"
+                f"{from_flag} **من عملة:** {from_currency.upper()}\n"
+                f"{to_flag} **إلى عملة:** {to_currency.upper()}\n"
                 f"🔢 **الكمية:** {amount}\n"
                 f"💵 **سعر الوحدة:** {formatted_unit} {to_currency.upper()}\n"
                 f"💰 **الإجمالي:** {formatted_total} {to_currency.upper()}"
@@ -115,6 +149,5 @@ def convert_currency(message):
         if message.chat.type == 'private':
             bot.reply_to(message, "❌ خطأ في الصيغة! اكتبها كدا مثلاً:\n`1 btc egp` أو `100 usd sar`", parse_mode='Markdown')
 
-# تشغيل البوت
-print("VLUX is running flawlessly...")
+print("VLUX layout is fully perfected...")
 bot.infinity_polling()
