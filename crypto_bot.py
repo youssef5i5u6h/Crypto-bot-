@@ -3,11 +3,11 @@ import requests
 import urllib.parse
 from telebot import types
 
-# التوكن
+# التوكن الجديد
 API_TOKEN = '8732953077:AAE3_IMxo_lTHRE8l63Cc2np22e_UwWp0JQ'
 bot = telebot.TeleBot(API_TOKEN)
 
-# --- القنوات واللينكات ---
+# --- نظام الاشتراك الإجباري ---
 CHANNELS = ["@KU7_4", "@superr_almas"]
 
 def check_subscription(user_id):
@@ -20,18 +20,28 @@ def check_subscription(user_id):
 
 def get_subscription_markup():
     markup = types.InlineKeyboardMarkup()
-    # هنا تم وضع اللينكات المباشرة للقنوات
     markup.add(types.InlineKeyboardButton("اشترك في القناة الأولى", url="https://t.me/KU7_4"))
     markup.add(types.InlineKeyboardButton("اشترك في القناة الثانية", url="https://t.me/superr_almas"))
+    markup.add(types.InlineKeyboardButton("تحقق ✅", callback_data="check_sub"))
     return markup
 
-# تعيين الأوامر
+@bot.callback_query_handler(func=lambda call: call.data == "check_sub")
+def callback_query(call):
+    if check_subscription(call.from_user.id):
+        bot.answer_callback_query(call.id, "تم التحقق بنجاح! ✅")
+        try: bot.delete_message(call.message.chat.id, call.message.message_id)
+        except: pass
+        send_welcome(call.message)
+    else:
+        bot.answer_callback_query(call.id, "لم تشترك بعد! ❌ اشترك أولاً ثم اضغط تحقق.", show_alert=True)
+
+# 1. تعيين الأوامر
 bot.set_my_commands([
     types.BotCommand("start", "تشغيل البوت وعرض الأزرار 🚀"),
     types.BotCommand("help", "طريقة استخدام البوت الفورية 💡")
 ])
 
-# قاموس العملات (نفس الصيغة الأولى)
+# القاموس الكامل للعملات
 CRYPTO_MAP = {
     'btc': 'bitcoin', 'eth': 'ethereum', 'bnb': 'binancecoin', 'sol': 'solana',
     'usdt': 'tether', 'xrp': 'ripple', 'ada': 'cardano', 'doge': 'dogecoin',
@@ -48,7 +58,7 @@ FLAG_MAP = {
     'KWD': '🇰🇼', 'QAR': '🇶🇦', 'BHD': '🇧🇭', 'OMR': '🇴🇲', 'JOD': '🇯🇴', 
     'LBP': '🇱🇧', 'IQD': '🇮🇶', 'LYD': '🇱🇾', 'MAD': '🇲🇦', 'DZD': '🇩🇿', 
     'TND': '🇹🇳', 'YER': '🇾🇪', 'GBP': '🇬🇧', 'JPY': '🇯🇵', 'CAD': '🇨🇦', 
-    'AUD': '🇦🇺', 'CHF': '🇨🇭', 'CNY': '🇨🇳', 'RUB': '🇷🇺', 'TRY': 'ᵀᴿ'
+    'AUD': '🇦🇺', 'CHF': '🇨🇭', 'CNY': '🇨🇳', 'RUB': '🇷🇺', 'TRY': '🇹🇷'
 }
 
 def get_flag(currency_code):
@@ -92,7 +102,7 @@ def convert_any_currency(amount, from_currency, to_currency):
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     if not check_subscription(message.from_user.id):
-        bot.reply_to(message, "🚀 To use this bot, you must join our channels:", reply_markup=get_subscription_markup())
+        bot.reply_to(message, "🚀 للاستمرار في استخدام البوت، يجب الانضمام للقنوات:", reply_markup=get_subscription_markup())
         return
 
     welcome_text = (
@@ -114,7 +124,7 @@ def send_welcome(message):
 @bot.message_handler(func=lambda message: True)
 def convert_currency(message):
     if not check_subscription(message.from_user.id):
-        bot.reply_to(message, "🚀 To use this bot, you must join our channels:", reply_markup=get_subscription_markup())
+        bot.reply_to(message, "🚀 للاستمرار في استخدام البوت، يجب الانضمام للقنوات:", reply_markup=get_subscription_markup())
         return
 
     text = message.text.strip().lower()
@@ -139,7 +149,16 @@ def convert_currency(message):
                     f"💰 **الإجمالي:** {'{:,.2f}'.format(t_price)} {to_c.upper()}"
                 )
                 bot.reply_to(message, resp, parse_mode='Markdown')
-        except: pass
+            else:
+                if message.chat.type == 'private':
+                    bot.reply_to(message, "❌ لم يتم العثور على العملة المطلوبة.", parse_mode='Markdown')
+        except:
+            if message.chat.type == 'private':
+                bot.reply_to(message, "❌ صيغة خطأ! جرب: `1 btc egp`", parse_mode='Markdown')
+    else:
+        if message.chat.type == 'private':
+            bot.reply_to(message, "❌ صيغة خطأ! جرب: `1 btc egp`", parse_mode='Markdown')
 
-print("VLUX with Subscription Links Running...")
+print("VLUX Full Version with Check Button is Running...")
 bot.infinity_polling()
+
