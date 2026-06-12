@@ -1,14 +1,13 @@
 import telebot
 import requests
-import re
-import urllib.parse
-from telebot import types
+import urllib.parse  # مكتبة لتشفير النص التلقائي جوه الرابط
+from telebot import types  # استدعاء مكتبة الأزرار
 
 # التوكن الخاص ببوتك
 API_TOKEN = '8732953077:AAGOENe3KART6vQGAUxCv3uRCobxVdOahHM'
 bot = telebot.TeleBot(API_TOKEN)
 
-# تعيين الأوامر تلقائياً في التليجرام عشان تظهر كأزرار زرقاء واقتراحات
+# 1. تعيين الأوامر تلقائياً في زرار الـ Menu الأزرق
 bot.set_my_commands([
     types.BotCommand("start", "تشغيل البوت وعرض الأزرار 🚀"),
     types.BotCommand("help", "طريقة استخدام البوت الفورية 💡")
@@ -26,7 +25,7 @@ CRYPTO_MAP = {
     'pepe': 'pepe', 'floki': 'floki', 'bonk': 'bonk', 'wif': 'dogwifhat', 'ton': 'the-open-network'
 }
 
-# قاموس أعلام الدول للعملات المحلية
+# قاموس أعلام الدول للعملات المحلية (مع حذف وتجنب الكيان تماماً)
 FLAG_MAP = {
     'EGP': '🇪🇬', 'USD': '🇺🇸', 'SAR': '🇸🇦', 'AED': '🇦🇪', 'EUR': '🇪🇺', 
     'KWD': '🇰🇼', 'QAR': '🇶🇦', 'BHD': '🇧🇭', 'OMR': '🇴🇲', 'JOD': '🇯🇴', 
@@ -36,6 +35,7 @@ FLAG_MAP = {
 }
 
 def get_flag(currency_code):
+    """دالة لجلب علم العملة لو محلي، أو إرجاع إيموجي مميز لو رقمي"""
     code = currency_code.upper().strip()
     if code in FLAG_MAP:
         return FLAG_MAP[code]
@@ -64,6 +64,7 @@ def convert_any_currency(amount, from_currency, to_currency):
     to_curr = to_currency.upper().strip()
     
     try:
+        # 1. فحص لو العملة الأساسية رقمية
         crypto_id = get_crypto_id(from_curr)
         if crypto_id:
             url = f"https://api.coingecko.com/api/v3/simple/price?ids={crypto_id}&vs_currencies={to_curr.lower()}"
@@ -72,6 +73,7 @@ def convert_any_currency(amount, from_currency, to_currency):
                 price_per_unit = response[crypto_id][to_curr.lower()]
                 return price_per_unit, price_per_unit * amount
 
+        # 2. فحص لو العملة محلية
         url = "https://open.er-api.com/v6/latest/USD"
         response = requests.get(url).json()
         rates = response.get('rates', {})
@@ -86,7 +88,7 @@ def convert_any_currency(amount, from_currency, to_currency):
         print(f"Error in conversion: {e}")
         return None, None
 
-# الرد على الأوامر سواء العادية أو المتبوعة بـ @VLUX_Bot في الجروبات
+# أمر /start و /help باليوزر الجديد والرسالة التلقائية المظبوطة
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     welcome_text = (
@@ -99,13 +101,17 @@ def send_welcome(message):
         "💡 **Example:** `1 btc egp`"
     )
     
+    # الجملة المكتوبة في كيبورد المستخدم تلقائياً
     preset_msg = "عايز بوت زي ده"
     encoded_msg = urllib.parse.quote(preset_msg)
     
-    dev_url = "https://t.me/Youssef_Abdelkarim"
+    # روابط التوجيه المباشرة باستخدام يوزرك الجديد @II_2P
+    dev_url = "https://t.me/II_2P"
     create_bot_url = f"https://t.me/share/url?url={dev_url}&text={encoded_msg}"
     
+    # صناعة الأزرار الشفافة
     markup = types.InlineKeyboardMarkup(row_width=1)
+    
     btn_developer = types.InlineKeyboardButton("👨‍💻 مطور البوت | Developer", url=dev_url)
     btn_create_bot = types.InlineKeyboardButton("🤖 شراء أو برمجة بوت", url=create_bot_url)
     
@@ -116,10 +122,12 @@ def send_welcome(message):
 def convert_currency(message):
     text = message.text.strip().lower()
     
+    # الفحص الفوري للكيان بالرد المظبوط والترتيب اللي طلبته
     if 'ils' in text:
         bot.reply_to(message, "كسم إسرائيل : فلسطين حرة 🇵🇸✊", parse_mode='Markdown')
         return
 
+    # فحص الرسالة والتقسيم الذكي للكلمات لمنع التهنيج في الجروبات
     words = text.split()
     if len(words) == 3:
         try:
@@ -127,6 +135,7 @@ def convert_currency(message):
             from_currency = words[1]
             to_currency = words[2]
             
+            # جلب أعلام العملات
             from_flag = get_flag(from_currency)
             to_flag = get_flag(to_currency)
             
@@ -154,6 +163,7 @@ def convert_currency(message):
         if message.chat.type == 'private':
             bot.reply_to(message, "❌ خطأ في الصيغة! اكتبها كدا مثلاً:\n`1 btc egp` أو `100 usd sar`", parse_mode='Markdown')
 
-print("VLUX with Menu Suggestions is running flawlessly...")
+# تشغيل البوت
+print("VLUX Full Bot is running flawlessly with all requested modifications...")
 bot.infinity_polling()
 
