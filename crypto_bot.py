@@ -8,6 +8,12 @@ from telebot import types
 API_TOKEN = '8732953077:AAGOENe3KART6vQGAUxCv3uRCobxVdOahHM'
 bot = telebot.TeleBot(API_TOKEN)
 
+# تعيين الأوامر تلقائياً في التليجرام عشان تظهر كأزرار زرقاء واقتراحات
+bot.set_my_commands([
+    types.BotCommand("start", "تشغيل البوت وعرض الأزرار 🚀"),
+    types.BotCommand("help", "طريقة استخدام البوت الفورية 💡")
+])
+
 # قاموس سريع لأشهر العملات الرقمية
 CRYPTO_MAP = {
     'btc': 'bitcoin', 'eth': 'ethereum', 'bnb': 'binancecoin', 'sol': 'solana',
@@ -20,7 +26,7 @@ CRYPTO_MAP = {
     'pepe': 'pepe', 'floki': 'floki', 'bonk': 'bonk', 'wif': 'dogwifhat', 'ton': 'the-open-network'
 }
 
-# قاموس أعلام الدول للعملات المحلية (مع حذف وتجنب الكيان تماماً)
+# قاموس أعلام الدول للعملات المحلية
 FLAG_MAP = {
     'EGP': '🇪🇬', 'USD': '🇺🇸', 'SAR': '🇸🇦', 'AED': '🇦🇪', 'EUR': '🇪🇺', 
     'KWD': '🇰🇼', 'QAR': '🇶🇦', 'BHD': '🇧🇭', 'OMR': '🇴🇲', 'JOD': '🇯🇴', 
@@ -30,7 +36,6 @@ FLAG_MAP = {
 }
 
 def get_flag(currency_code):
-    """دالة لجلب علم العملة لو محلي، أو إرجاع إيموجي مميز لو رقمي"""
     code = currency_code.upper().strip()
     if code in FLAG_MAP:
         return FLAG_MAP[code]
@@ -59,7 +64,6 @@ def convert_any_currency(amount, from_currency, to_currency):
     to_curr = to_currency.upper().strip()
     
     try:
-        # 1. فحص لو العملة الأساسية رقمية
         crypto_id = get_crypto_id(from_curr)
         if crypto_id:
             url = f"https://api.coingecko.com/api/v3/simple/price?ids={crypto_id}&vs_currencies={to_curr.lower()}"
@@ -68,7 +72,6 @@ def convert_any_currency(amount, from_currency, to_currency):
                 price_per_unit = response[crypto_id][to_curr.lower()]
                 return price_per_unit, price_per_unit * amount
 
-        # 2. فحص لو العملة محلية
         url = "https://open.er-api.com/v6/latest/USD"
         response = requests.get(url).json()
         rates = response.get('rates', {})
@@ -83,6 +86,7 @@ def convert_any_currency(amount, from_currency, to_currency):
         print(f"Error in conversion: {e}")
         return None, None
 
+# الرد على الأوامر سواء العادية أو المتبوعة بـ @VLUX_Bot في الجروبات
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     welcome_text = (
@@ -112,42 +116,44 @@ def send_welcome(message):
 def convert_currency(message):
     text = message.text.strip().lower()
     
-    # الفحص الفوري المظبوط بالترتيب اللي طلبته بالظبط
     if 'ils' in text:
         bot.reply_to(message, "كسم إسرائيل : فلسطين حرة 🇵🇸✊", parse_mode='Markdown')
         return
 
-    match = re.match(r"([0-9.]+)\s*([a-z0-9\-]+)\s+([a-z]+)", text)
-    
-    if match:
-        amount = float(match.group(1))
-        from_currency = message.text.split()[1] # للحفاظ على حالة الأحرف الأصلية عند جلب العلم
-        to_currency = message.text.split()[2]
-        
-        # جلب أعلام العملات تلقائياً
-        from_flag = get_flag(from_currency)
-        to_flag = get_flag(to_currency)
-        
-        price_unit, total_price = convert_any_currency(amount, from_currency, to_currency)
-        
-        if price_unit is not None:
-            formatted_unit = "{:,.4f}".format(price_unit)
-            formatted_total = "{:,.2f}".format(total_price)
+    words = text.split()
+    if len(words) == 3:
+        try:
+            amount = float(words[0])
+            from_currency = words[1]
+            to_currency = words[2]
             
-            response_text = (
-                f"{from_flag} **من عملة:** {from_currency.upper()}\n"
-                f"{to_flag} **إلى عملة:** {to_currency.upper()}\n"
-                f"🔢 **الكمية:** {amount}\n"
-                f"💵 **سعر الوحدة:** {formatted_unit} {to_currency.upper()}\n"
-                f"💰 **الإجمالي:** {formatted_total} {to_currency.upper()}"
-            )
-            bot.reply_to(message, response_text, parse_mode='Markdown')
-        else:
+            from_flag = get_flag(from_currency)
+            to_flag = get_flag(to_currency)
+            
+            price_unit, total_price = convert_any_currency(amount, from_currency, to_currency)
+            
+            if price_unit is not None:
+                formatted_unit = "{:,.4f}".format(price_unit)
+                formatted_total = "{:,.2f}".format(total_price)
+                
+                response_text = (
+                    f"{from_flag} **من عملة:** {from_currency.upper()}\n"
+                    f"{to_flag} **إلى عملة:** {to_currency.upper()}\n"
+                    f"🔢 **الكمية:** {amount}\n"
+                    f"💵 **سعر الوحدة:** {formatted_unit} {to_currency.upper()}\n"
+                    f"💰 **الإجمالي:** {formatted_total} {to_currency.upper()}"
+                )
+                bot.reply_to(message, response_text, parse_mode='Markdown')
+            else:
+                if message.chat.type == 'private':
+                    bot.reply_to(message, f"❌ عذراً، لم يتم العثور على العملة `{from_currency.upper()}`.", parse_mode='Markdown')
+        except ValueError:
             if message.chat.type == 'private':
-                bot.reply_to(message, f"❌ عذراً، لم يتم العثور على العملة `{from_currency.upper()}` أو أن التحويل لـ `{to_currency.upper()}` غير مدعوم حالياً.", parse_mode='Markdown')
+                bot.reply_to(message, "❌ خطأ في الصيغة! اكتبها كدا مثلاً:\n`1 btc egp` أو `100 usd sar`", parse_mode='Markdown')
     else:
         if message.chat.type == 'private':
             bot.reply_to(message, "❌ خطأ في الصيغة! اكتبها كدا مثلاً:\n`1 btc egp` أو `100 usd sar`", parse_mode='Markdown')
 
-print("VLUX layout is fully perfected...")
+print("VLUX with Menu Suggestions is running flawlessly...")
 bot.infinity_polling()
+
