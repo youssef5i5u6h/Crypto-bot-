@@ -88,7 +88,7 @@ def convert_any_currency(amount, from_currency, to_currency):
         print(f"Error in conversion: {e}")
         return None, None
 
-# أمر /start و /help باليوزر الجديد والرسالة التلقائية المظبوطة
+# أمر /start و /help بالرابط المباشر الجديد لمنع شاشة التحويل والمشاركة
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     welcome_text = (
@@ -105,9 +105,9 @@ def send_welcome(message):
     preset_msg = "عايز بوت زي ده"
     encoded_msg = urllib.parse.quote(preset_msg)
     
-    # روابط التوجيه المباشرة باستخدام يوزرك الجديد @II_2P
+    # الرابط الجديد (tg://resolve) بيدخل المستخدم على يوزرك II_2P فوراً ويكتب الجملة تلقائي في الكيبورد
     dev_url = "https://t.me/II_2P"
-    create_bot_url = f"https://t.me/share/url?url={dev_url}&text={encoded_msg}"
+    create_bot_url = f"tg://resolve?domain=II_2P&text={encoded_msg}"
     
     # صناعة الأزرار الشفافة
     markup = types.InlineKeyboardMarkup(row_width=1)
@@ -164,6 +164,6 @@ def convert_currency(message):
             bot.reply_to(message, "❌ خطأ في الصيغة! اكتبها كدا مثلاً:\n`1 btc egp` أو `100 usd sar`", parse_mode='Markdown')
 
 # تشغيل البوت
-print("VLUX Full Bot is running flawlessly with all requested modifications...")
+print("VLUX Full Bot with direct chat link is running flawlessly...")
 bot.infinity_polling()
 
