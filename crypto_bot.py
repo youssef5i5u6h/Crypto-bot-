@@ -3,17 +3,35 @@ import requests
 import urllib.parse
 from telebot import types
 
-# التوكن الخاص ببوتك
-API_TOKEN = '8732953077:AAGOENe3KART6vQGAUxCv3uRCobxVdOahHM'
+# التوكن
+API_TOKEN = '8732953077:AAE3_IMxo_lTHRE8l63Cc2np22e_UwWp0JQ'
 bot = telebot.TeleBot(API_TOKEN)
 
-# 1. تعيين الأوامر تلقائياً في زرار الـ Menu الأزرق
+# --- القنوات واللينكات ---
+CHANNELS = ["@KU7_4", "@superr_almas"]
+
+def check_subscription(user_id):
+    for channel in CHANNELS:
+        try:
+            status = bot.get_chat_member(channel, user_id).status
+            if status in ['left', 'kicked']: return False
+        except: return False
+    return True
+
+def get_subscription_markup():
+    markup = types.InlineKeyboardMarkup()
+    # هنا تم وضع اللينكات المباشرة للقنوات
+    markup.add(types.InlineKeyboardButton("اشترك في القناة الأولى", url="https://t.me/KU7_4"))
+    markup.add(types.InlineKeyboardButton("اشترك في القناة الثانية", url="https://t.me/superr_almas"))
+    return markup
+
+# تعيين الأوامر
 bot.set_my_commands([
     types.BotCommand("start", "تشغيل البوت وعرض الأزرار 🚀"),
     types.BotCommand("help", "طريقة استخدام البوت الفورية 💡")
 ])
 
-# قاموس لأشهر العملات (تم حذف وتجنب الكيان)
+# قاموس العملات (نفس الصيغة الأولى)
 CRYPTO_MAP = {
     'btc': 'bitcoin', 'eth': 'ethereum', 'bnb': 'binancecoin', 'sol': 'solana',
     'usdt': 'tether', 'xrp': 'ripple', 'ada': 'cardano', 'doge': 'dogecoin',
@@ -30,7 +48,7 @@ FLAG_MAP = {
     'KWD': '🇰🇼', 'QAR': '🇶🇦', 'BHD': '🇧🇭', 'OMR': '🇴🇲', 'JOD': '🇯🇴', 
     'LBP': '🇱🇧', 'IQD': '🇮🇶', 'LYD': '🇱🇾', 'MAD': '🇲🇦', 'DZD': '🇩🇿', 
     'TND': '🇹🇳', 'YER': '🇾🇪', 'GBP': '🇬🇧', 'JPY': '🇯🇵', 'CAD': '🇨🇦', 
-    'AUD': '🇦🇺', 'CHF': '🇨🇭', 'CNY': '🇨🇳', 'RUB': '🇷🇺', 'TRY': '🇹🇷'
+    'AUD': '🇦🇺', 'CHF': '🇨🇭', 'CNY': '🇨🇳', 'RUB': '🇷🇺', 'TRY': 'ᵀᴿ'
 }
 
 def get_flag(currency_code):
@@ -65,38 +83,40 @@ def convert_any_currency(amount, from_currency, to_currency):
         url = "https://open.er-api.com/v6/latest/USD"
         response = requests.get(url).json()
         rates = response.get('rates', {})
-        from_target = from_curr.upper()
-        if from_target in rates and to_curr in rates:
-            price = rates[to_curr] / rates[from_target]
+        if from_curr.upper() in rates and to_curr in rates:
+            price = rates[to_curr] / rates[from_curr.upper()]
             return price, price * amount
         return None, None
     except: return None, None
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
+    if not check_subscription(message.from_user.id):
+        bot.reply_to(message, "🚀 To use this bot, you must join our channels:", reply_markup=get_subscription_markup())
+        return
+
     welcome_text = (
         "👋 **أهلاً بك في بوت ڤلوكس | VLUX**\n"
         "اكتب أي عملة أنت عايزها وأنا هجيبلك سعرها بالبلد بتاعتها.\n\n"
         "💡 **مثال:** `1 btc egp`"
     )
-    
-    # الجملة المطلوبة كجملة تلقائية في الرابط
     preset_msg = "شراء / برمجة بوت"
     encoded_msg = urllib.parse.quote(preset_msg)
-    
-    # الرابط المباشر ليوزرك II_2P
     direct_chat_url = f"tg://resolve?domain=II_2P&text={encoded_msg}"
     
     markup = types.InlineKeyboardMarkup(row_width=1)
-    
-    btn_developer = types.InlineKeyboardButton("👨‍💻 مطور البوت | Developer", url=direct_chat_url)
-    btn_create_bot = types.InlineKeyboardButton("🤖 شراء / برمجة بوت", url=direct_chat_url)
-    
-    markup.add(btn_developer, btn_create_bot)
+    markup.add(
+        types.InlineKeyboardButton("👨‍💻 مطور البوت | Developer", url=direct_chat_url),
+        types.InlineKeyboardButton("🤖 شراء / برمجة بوت", url=direct_chat_url)
+    )
     bot.reply_to(message, welcome_text, parse_mode='Markdown', reply_markup=markup)
 
 @bot.message_handler(func=lambda message: True)
 def convert_currency(message):
+    if not check_subscription(message.from_user.id):
+        bot.reply_to(message, "🚀 To use this bot, you must join our channels:", reply_markup=get_subscription_markup())
+        return
+
     text = message.text.strip().lower()
     if 'ils' in text:
         bot.reply_to(message, "كسم إسرائيل : فلسطين حرة 🇵🇸✊", parse_mode='Markdown')
@@ -111,16 +131,15 @@ def convert_currency(message):
             p_unit, t_price = convert_any_currency(amount, from_c, to_c)
             
             if p_unit is not None:
-                response_text = (
+                resp = (
                     f"{f_flag} **من:** {from_c.upper()}\n"
                     f"{t_flag} **إلى:** {to_c.upper()}\n"
                     f"🔢 **الكمية:** {amount}\n"
                     f"💵 **سعر الوحدة:** {'{:,.4f}'.format(p_unit)} {to_c.upper()}\n"
                     f"💰 **الإجمالي:** {'{:,.2f}'.format(t_price)} {to_c.upper()}"
                 )
-                bot.reply_to(message, response_text, parse_mode='Markdown')
+                bot.reply_to(message, resp, parse_mode='Markdown')
         except: pass
 
-print("VLUX with updated text is running...")
+print("VLUX with Subscription Links Running...")
 bot.infinity_polling()
-
