@@ -1,7 +1,7 @@
 import telebot
 import requests
-import urllib.parse  # مكتبة لتشفير النص التلقائي جوه الرابط
-from telebot import types  # استدعاء مكتبة الأزرار
+import urllib.parse
+from telebot import types
 
 # التوكن الخاص ببوتك
 API_TOKEN = '8732953077:AAGOENe3KART6vQGAUxCv3uRCobxVdOahHM'
@@ -13,7 +13,7 @@ bot.set_my_commands([
     types.BotCommand("help", "طريقة استخدام البوت الفورية 💡")
 ])
 
-# قاموس سريع لأشهر العملات الرقمية
+# قاموس لأشهر العملات (تم حذف وتجنب الكيان)
 CRYPTO_MAP = {
     'btc': 'bitcoin', 'eth': 'ethereum', 'bnb': 'binancecoin', 'sol': 'solana',
     'usdt': 'tether', 'xrp': 'ripple', 'ada': 'cardano', 'doge': 'dogecoin',
@@ -25,9 +25,8 @@ CRYPTO_MAP = {
     'pepe': 'pepe', 'floki': 'floki', 'bonk': 'bonk', 'wif': 'dogwifhat', 'ton': 'the-open-network'
 }
 
-# قاموس أعلام الدول للعملات المحلية (مع حذف وتجنب الكيان تماماً)
 FLAG_MAP = {
-    'EGP': '🇪🇬', 'USD': '🇺🇸', 'SAR': '🇸🇦', 'AED': '🇦ئه', 'EUR': '🇪🇺', 
+    'EGP': '🇪🇬', 'USD': '🇺🇸', 'SAR': '🇸🇦', 'AED': '🇦🇪', 'EUR': '🇪🇺', 
     'KWD': '🇰🇼', 'QAR': '🇶🇦', 'BHD': '🇧🇭', 'OMR': '🇴🇲', 'JOD': '🇯🇴', 
     'LBP': '🇱🇧', 'IQD': '🇮🇶', 'LYD': '🇱🇾', 'MAD': '🇲🇦', 'DZD': '🇩🇿', 
     'TND': '🇹🇳', 'YER': '🇾🇪', 'GBP': '🇬🇧', 'JPY': '🇯🇵', 'CAD': '🇨🇦', 
@@ -35,80 +34,59 @@ FLAG_MAP = {
 }
 
 def get_flag(currency_code):
-    """دالة لجلب علم العملة لو محلي، أو إرجاع إيموجي مميز لو رقمي"""
     code = currency_code.upper().strip()
-    if code in FLAG_MAP:
-        return FLAG_MAP[code]
-    elif code.lower() in CRYPTO_MAP:
-        return '🪙'
+    if code in FLAG_MAP: return FLAG_MAP[code]
+    elif code.lower() in CRYPTO_MAP: return '🪙'
     return '🏳️'
 
 def get_crypto_id(symbol):
     symbol = symbol.lower().strip()
-    if symbol in CRYPTO_MAP:
-        return CRYPTO_MAP[symbol]
-        
+    if symbol in CRYPTO_MAP: return CRYPTO_MAP[symbol]
     try:
         search_url = f"https://api.coingecko.com/api/v3/search?query={symbol}"
         response = requests.get(search_url).json()
         coins = response.get('coins', [])
         for coin in coins:
-            if coin.get('symbol', '').lower() == symbol:
-                return coin.get('id')
+            if coin.get('symbol', '').lower() == symbol: return coin.get('id')
         return None
-    except Exception:
-        return None
+    except: return None
 
 def convert_any_currency(amount, from_currency, to_currency):
     from_curr = from_currency.lower().strip()
     to_curr = to_currency.upper().strip()
-    
     try:
-        # 1. فحص لو العملة الأساسية رقمية
         crypto_id = get_crypto_id(from_curr)
         if crypto_id:
             url = f"https://api.coingecko.com/api/v3/simple/price?ids={crypto_id}&vs_currencies={to_curr.lower()}"
             response = requests.get(url).json()
             if crypto_id in response and to_curr.lower() in response[crypto_id]:
-                price_per_unit = response[crypto_id][to_curr.lower()]
-                return price_per_unit, price_per_unit * amount
-
-        # 2. فحص لو العملة محلية
+                price = response[crypto_id][to_curr.lower()]
+                return price, price * amount
         url = "https://open.er-api.com/v6/latest/USD"
         response = requests.get(url).json()
         rates = response.get('rates', {})
-        
         from_target = from_curr.upper()
         if from_target in rates and to_curr in rates:
-            price_per_unit = rates[to_curr] / rates[from_target]
-            return price_per_unit, price_per_unit * amount
-            
+            price = rates[to_curr] / rates[from_target]
+            return price, price * amount
         return None, None
-    except Exception as e:
-        print(f"Error in conversion: {e}")
-        return None, None
+    except: return None, None
 
-# أمر /start و /help بالروابط المباشرة بالعربي وتعديل اسم الزرار
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     welcome_text = (
         "👋 **أهلاً بك في بوت ڤلوكس | VLUX**\n"
         "اكتب أي عملة أنت عايزها وأنا هجيبلك سعرها بالبلد بتاعتها.\n\n"
-        "💡 **مثال:** `1 btc egp`\n"
-        "--- --- --- --- --- --- --- ---\n"
-        "👋 **Welcome to VLUX Bot**\n"
-        "Type any currency you want and I will get its price for you.\n\n"
-        "💡 **Example:** `1 btc egp`"
+        "💡 **مثال:** `1 btc egp`"
     )
     
-    # الجملة العربي الموحدة في كيبورد المستخدم
-    preset_msg = "عايز بوت زي ده"
+    # الجملة المطلوبة كجملة تلقائية في الرابط
+    preset_msg = "شراء / برمجة بوت"
     encoded_msg = urllib.parse.quote(preset_msg)
     
-    # رابط التوجيه المباشر العالي السرعة ليوزرك II_2P
+    # الرابط المباشر ليوزرك II_2P
     direct_chat_url = f"tg://resolve?domain=II_2P&text={encoded_msg}"
     
-    # صناعة الأزرار الشفافة
     markup = types.InlineKeyboardMarkup(row_width=1)
     
     btn_developer = types.InlineKeyboardButton("👨‍💻 مطور البوت | Developer", url=direct_chat_url)
@@ -120,49 +98,29 @@ def send_welcome(message):
 @bot.message_handler(func=lambda message: True)
 def convert_currency(message):
     text = message.text.strip().lower()
-    
-    # الفحص الفوري للكيان بالرد المظبوط والترتيب اللي طلبته
     if 'ils' in text:
         bot.reply_to(message, "كسم إسرائيل : فلسطين حرة 🇵🇸✊", parse_mode='Markdown')
         return
 
-    # فحص الرسالة والتقسيم الذكي للكلمات لمنع التهنيج في الجروبات
     words = text.split()
     if len(words) == 3:
         try:
             amount = float(words[0])
-            from_currency = words[1]
-            to_currency = words[2]
+            from_c, to_c = words[1], words[2]
+            f_flag, t_flag = get_flag(from_c), get_flag(to_c)
+            p_unit, t_price = convert_any_currency(amount, from_c, to_c)
             
-            # جلب أعلام العملات
-            from_flag = get_flag(from_currency)
-            to_flag = get_flag(to_currency)
-            
-            price_unit, total_price = convert_any_currency(amount, from_currency, to_currency)
-            
-            if price_unit is not None:
-                formatted_unit = "{:,.4f}".format(price_unit)
-                formatted_total = "{:,.2f}".format(total_price)
-                
+            if p_unit is not None:
                 response_text = (
-                    f"{from_flag} **من عملة:** {from_currency.upper()}\n"
-                    f"{to_flag} **إلى عملة:** {to_currency.upper()}\n"
+                    f"{f_flag} **من:** {from_c.upper()}\n"
+                    f"{t_flag} **إلى:** {to_c.upper()}\n"
                     f"🔢 **الكمية:** {amount}\n"
-                    f"💵 **سعر الوحدة:** {formatted_unit} {to_currency.upper()}\n"
-                    f"💰 **الإجمالي:** {formatted_total} {to_currency.upper()}"
+                    f"💵 **سعر الوحدة:** {'{:,.4f}'.format(p_unit)} {to_c.upper()}\n"
+                    f"💰 **الإجمالي:** {'{:,.2f}'.format(t_price)} {to_c.upper()}"
                 )
                 bot.reply_to(message, response_text, parse_mode='Markdown')
-            else:
-                if message.chat.type == 'private':
-                    bot.reply_to(message, f"❌ عذراً، لم يتم العثور على العملة `{from_currency.upper()}`.", parse_mode='Markdown')
-        except ValueError:
-            if message.chat.type == 'private':
-                bot.reply_to(message, "❌ خطأ في الصيغة! اكتبها كدا مثلاً:\n`1 btc egp` أو `100 usd sar`", parse_mode='Markdown')
-    else:
-        if message.chat.type == 'private':
-            bot.reply_to(message, "❌ خطأ في الصيغة! اكتبها كدا مثلاً:\n`1 btc egp` أو `100 usd sar`", parse_mode='Markdown')
+        except: pass
 
-# تشغيل البوت
-print("VLUX Full Bot with exact button name is running flawlessly...")
+print("VLUX with updated text is running...")
 bot.infinity_polling()
 
