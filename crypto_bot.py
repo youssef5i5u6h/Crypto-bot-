@@ -27,7 +27,7 @@ CRYPTO_MAP = {
 
 # قاموس أعلام الدول للعملات المحلية (مع حذف وتجنب الكيان تماماً)
 FLAG_MAP = {
-    'EGP': '🇪🇬', 'USD': '🇺🇸', 'SAR': '🇸🇦', 'AED': '🇦🇪', 'EUR': '🇪🇺', 
+    'EGP': '🇪🇬', 'USD': '🇺🇸', 'SAR': '🇸🇦', 'AED': '🇦ئه', 'EUR': '🇪🇺', 
     'KWD': '🇰🇼', 'QAR': '🇶🇦', 'BHD': '🇧🇭', 'OMR': '🇴🇲', 'JOD': '🇯🇴', 
     'LBP': '🇱🇧', 'IQD': '🇮🇶', 'LYD': '🇱🇾', 'MAD': '🇲🇦', 'DZD': '🇩🇿', 
     'TND': '🇹🇳', 'YER': '🇾🇪', 'GBP': '🇬🇧', 'JPY': '🇯🇵', 'CAD': '🇨🇦', 
@@ -88,7 +88,7 @@ def convert_any_currency(amount, from_currency, to_currency):
         print(f"Error in conversion: {e}")
         return None, None
 
-# أمر /start و /help بالرابط المباشر الجديد لمنع شاشة التحويل والمشاركة
+# أمر /start و /help بالروابط المباشرة بالعربي وتعديل اسم الزرار
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     welcome_text = (
@@ -101,19 +101,18 @@ def send_welcome(message):
         "💡 **Example:** `1 btc egp`"
     )
     
-    # الجملة المكتوبة في كيبورد المستخدم تلقائياً
+    # الجملة العربي الموحدة في كيبورد المستخدم
     preset_msg = "عايز بوت زي ده"
     encoded_msg = urllib.parse.quote(preset_msg)
     
-    # الرابط الجديد (tg://resolve) بيدخل المستخدم على يوزرك II_2P فوراً ويكتب الجملة تلقائي في الكيبورد
-    dev_url = "https://t.me/II_2P"
-    create_bot_url = f"tg://resolve?domain=II_2P&text={encoded_msg}"
+    # رابط التوجيه المباشر العالي السرعة ليوزرك II_2P
+    direct_chat_url = f"tg://resolve?domain=II_2P&text={encoded_msg}"
     
     # صناعة الأزرار الشفافة
     markup = types.InlineKeyboardMarkup(row_width=1)
     
-    btn_developer = types.InlineKeyboardButton("👨‍💻 مطور البوت | Developer", url=dev_url)
-    btn_create_bot = types.InlineKeyboardButton("🤖 شراء أو برمجة بوت", url=create_bot_url)
+    btn_developer = types.InlineKeyboardButton("👨‍💻 مطور البوت | Developer", url=direct_chat_url)
+    btn_create_bot = types.InlineKeyboardButton("🤖 شراء / برمجة بوت", url=direct_chat_url)
     
     markup.add(btn_developer, btn_create_bot)
     bot.reply_to(message, welcome_text, parse_mode='Markdown', reply_markup=markup)
@@ -164,6 +163,6 @@ def convert_currency(message):
             bot.reply_to(message, "❌ خطأ في الصيغة! اكتبها كدا مثلاً:\n`1 btc egp` أو `100 usd sar`", parse_mode='Markdown')
 
 # تشغيل البوت
-print("VLUX Full Bot with direct chat link is running flawlessly...")
+print("VLUX Full Bot with exact button name is running flawlessly...")
 bot.infinity_polling()
 
