@@ -1,78 +1,120 @@
-import logging
-import re
+import telebot
 import requests
-import os
-from threading import Thread
-from flask import Flask
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+import re
 
-app = Flask('')
+# التوكن الجديد الخاص ببوتك تم وضعه هنا مباشرة
+API_TOKEN = '8732953077:AAGOENe3KART6vQGAUxCv3uRCobxVdOahHM'
+bot = telebot.TeleBot(API_TOKEN)
 
-@app.route('/')
-def home():
-    return "Bot is alive!"
+# قاموس سريع لأشهر العملات الرقمية لزيادة سرعة الرد وعدم حدوث ضغط على الـ API
+CRYPTO_MAP = {
+    'btc': 'bitcoin', 'eth': 'ethereum', 'bnb': 'binancecoin', 'sol': 'solana',
+    'usdt': 'tether', 'xrp': 'ripple', 'ada': 'cardano', 'doge': 'dogecoin',
+    'trx': 'tron', 'dot': 'polkadot', 'ltc': 'litecoin', 'shib': 'shiba-inu',
+    'avax': 'avalanche-2', 'link': 'chainlink', 'uni': 'uniswap', 'atom': 'cosmos',
+    'xlm': 'stellar', 'fil': 'filecoin', 'etc': 'ethereum-classic', 'hbar': 'hbar',
+    'apt': 'aptos', 'sui': 'sui', 'near': 'near', 'op': 'optimism', 'arb': 'arbitrum',
+    'ldo': 'lido-dao', 'fet': 'fetch-ai', 'inj': 'injective-protocol', 'render': 'render-token',
+    'pepe': 'pepe', 'floki': 'floki', 'bonk': 'bonk', 'wif': 'dogwifhat', 'ton': 'the-open-network'
+}
 
-def run_fiat():
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
-
-def keep_alive():
-    t = Thread(target=run_fiat)
-    t.start()
-
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-
-BOT_TOKEN = "8732953077:AAGOENe3KART6vQGAUxCv3uRCobxVdOahHM"
-
-def get_crypto_price(coin_symbol):
+# دالة برمجية للبحث الديناميكي عن ID العملة الرقمية لو مش موجودة في القاموس السريع
+def get_crypto_id(symbol):
+    symbol = symbol.lower().strip()
+    if symbol in CRYPTO_MAP:
+        return CRYPTO_MAP[symbol]
+        
     try:
-        url = f"https://api.coingecko.com/api/v3/coins/markets"
-        params = {'vs_currency': 'egp', 'symbols': coin_symbol.lower()}
-        response = requests.get(url, params=params).json()
-        if response and len(response) > 0:
-            return response[0]['current_price']
+        search_url = f"https://api.coingecko.com/api/v3/search?query={symbol}"
+        response = requests.get(search_url).json()
+        coins = response.get('coins', [])
+        for coin in coins:
+            if coin.get('symbol', '').lower() == symbol:
+                return coin.get('id')
         return None
-    except: return None
+    except Exception:
+        return None
 
-def get_fiat_price(currency_symbol):
+# الدالة الشاملة لتحويل أي عملة في العالم لعملة تانية
+def convert_any_currency(amount, from_currency, to_currency):
+    from_curr = from_currency.lower().strip()
+    to_curr = to_currency.upper().strip()
+    
     try:
-        url = f"https://open.er-api.com/v6/latest/USD"
+        # 1. فحص لو العملة الأساسية رقمية
+        crypto_id = get_crypto_id(from_curr)
+        if crypto_id:
+            url = f"https://api.coingecko.com/api/v3/simple/price?ids={crypto_id}&vs_currencies={to_curr.lower()}"
+            response = requests.get(url).json()
+            if crypto_id in response and to_curr.lower() in response[crypto_id]:
+                price_per_unit = response[crypto_id][to_curr.lower()]
+                return price_per_unit, price_per_unit * amount
+
+        # 2. فحص لو العملة محلية لكل دول العالم
+        url = "https://open.er-api.com/v6/latest/USD"
         response = requests.get(url).json()
-        rates = response.get("rates", {})
-        if "EGP" in rates and currency_symbol.upper() in rates:
-            return rates["EGP"] / rates[currency_symbol.upper()]
-        return None
-    except: return None
+        rates = response.get('rates', {})
+        
+        from_target = from_curr.upper()
+        if from_target in rates and to_curr in rates:
+            price_per_unit = rates[to_curr] / rates[from_target]
+            return price_per_unit, price_per_unit * amount
+            
+        return None, None
+    except Exception as e:
+        print(f"Error in conversion: {e}")
+        return None, None
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 أهلاً بك! اكتب لي القيمة والعملة مثل: 50 bnb أو 100 usd وسأحسبها بالجنيه المصري.")
+# أمر /start و /help بالصيغة العربية والإنجليزية مدموجين معاً
+@bot.message_handler(commands=['start', 'help'])
+def send_welcome(message):
+    welcome_text = (
+        "👋 **أهلاً بك في بوت ڤلوكس | VLUX**\n"
+        "اكتب أي عملة أنت عايزها وأنا هجيبلك سعرها.\n\n"
+        "💡 **مثال:** `1 btc egp`\n"
+        "--- --- --- --- --- --- --- ---\n"
+        "👋 **Welcome to VLUX Bot**\n"
+        "Type any currency you want and I will get its price for you.\n\n"
+        "💡 **Example:** `1 btc egp`"
+    )
+    bot.reply_to(message, welcome_text, parse_mode='Markdown')
 
-async def handle_conversion(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_text = update.message.text.strip()
-    match = re.match(r"^([0-9.]+)\s*([a-zA-Z]+)$", user_text)
-    if not match:
-        await update.message.reply_text("❌ خطأ! اكتب مثلاً: 50 bnb")
-        return
-    amount = float(match.group(1))
-    symbol = match.group(2).upper()
+# قراءة وفك شفرة الرسائل في الخاص والجروبات تلقائياً
+@bot.message_handler(func=lambda message: True)
+def convert_currency(message):
+    text = message.text.strip().lower()
     
-    price = get_crypto_price(symbol) or get_fiat_price(symbol)
+    # فك الرسالة بذكاء: (الرقم) ثم (العملة 1) ثم مسافة ثم (العملة 2)
+    match = re.match(r"([0-9.]+)\s*([a-z0-9\-]+)\s+([a-z]+)", text)
     
-    if price:
-        total = amount * price
-        await update.message.reply_text(f"💰 {amount} {symbol} =\n**{total:,.2f} جنيه مصري**", parse_mode="Markdown")
+    if match:
+        amount = float(match.group(1))
+        from_currency = match.group(2)
+        to_currency = match.group(3)
+        
+        # تنفيذ التحويل الشامل
+        price_unit, total_price = convert_any_currency(amount, from_currency, to_currency)
+        
+        if price_unit is not None:
+            # تنسيق الأرقام بشكل احترافي للجروبات
+            formatted_unit = "{:,.4f}".format(price_unit)
+            formatted_total = "{:,.2f}".format(total_price)
+            
+            response_text = (
+                f"🪙 **من عملة:** {from_currency.upper()}\n"
+                f"🎯 **إلى عملة:** {to_currency.upper()}\n"
+                f"🔢 **الكمية:** {amount}\n"
+                f"💵 **سعر الوحدة:** {formatted_unit} {to_currency.upper()}\n"
+                f"💰 **الإجمالي:** {formatted_total} {to_currency.upper()}"
+            )
+            bot.reply_to(message, response_text, parse_mode='Markdown')
+        else:
+            if message.chat.type == 'private':
+                bot.reply_to(message, f"❌ عذراً، لم يتم العثور على العملة `{from_currency.upper()}` أو أن التحويل لـ `{to_currency.upper()}` غير مدعوم حالياً.", parse_mode='Markdown')
     else:
-        await update.message.reply_text("❌ عذراً، لم أجد سعر هذه العملة.")
+        if message.chat.type == 'private':
+            bot.reply_to(message, "❌ خطأ في الصيغة! اكتبها كدا مثلاً:\n`1 btc egp` أو `100 usd sar`", parse_mode='Markdown')
 
-def main():
-    keep_alive()
-    application = Application.builder().token(BOT_TOKEN).build()
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_conversion))
-    print("البوت يعمل الآن...")
-    application.run_polling()
-
-if __name__ == '__main__':
-    main()
-
+# تشغيل البوت
+print("VLUX is running flawlessly...")
+bot.infinity_polling()
