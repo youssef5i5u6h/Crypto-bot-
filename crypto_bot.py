@@ -111,7 +111,7 @@ def help_msg(message):
     if not check_subscription(message.from_user.id):
         bot.reply_to(message, "🚀 عشان تستخدم البوت لازم تكون ف القنوات:", reply_markup=get_subscription_markup())
         return
-    text = "💡 **مساعدة بوت ڤلوكس**\nا`\n⚠️ **لو في أي مشكلة في البوت أو مش عارف تستخدم البوت ازاي كلمني:**"
+    text = "💡 **مساعدة بوت ڤلوكس**\n⚠️ **لو في أي مشكلة في البوت أو مش عارف تستخدم البوت ازاي كلمني:**"
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("👨‍💻 مطور البوت", url=f"https://t.me/{DEV_USER.replace('@', '')}"))
     bot.reply_to(message, text, parse_mode='Markdown', reply_markup=markup)
