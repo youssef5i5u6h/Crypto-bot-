@@ -27,7 +27,7 @@ FLAG_MAP = {
     'TND': '🇹🇳', 'YER': '🇾🇪', 'GBP': '🇬🇧', 'JPY': '🇯🇵', 'CAD': '🇨🇦', 
     'AUD': '🇦🇺', 'CHF': '🇨🇭', 'CNY': '🇨🇳', 'RUB': '🇷🇺', 'TRY': '🇹🇷',
     'SDG': '🇸🇩', 'SLL': '🇸🇱', 'SOS': '🇸🇴', 'SSP': '🇸🇸', 'SYP': '🇸🇾',
-    'KGS': '🇰🇬', 'KHR': '🇰🇭', 'KMF': '🇰🇲', 'KPW': '🇰‌پ', 'KRW': '🇰🇷'
+    'KGS': '🇰🇬', 'KHR': '🇰🇭', 'KMF': '🇰🇲', 'KPW': '🇰🇵', 'KRW': '🇰🇷'
 }
 
 def get_flag(code):
@@ -54,30 +54,37 @@ def get_subscription_markup():
     markup.add(types.InlineKeyboardButton("تحقق ✅", callback_data="check_sub"))
     return markup
 
-# الدالة الذكية الجديدة: بتجرب الكريبتو الأول، ولو منفعش بتجيب العملات العادية فوراً
+# الدالة المُحدثة والمُعززة بالـ Logs
 def convert_currency(amount, from_c, to_c):
-    from_c = from_c.upper().strip()
-    to_c = to_c.upper().strip()
+    # تحويل الحروف للغة إنجليزية نظيفة ومسح أي مسافات مخفية
+    from_c = str(from_c).upper().strip()
+    to_c = str(to_c).upper().strip()
     
-    # 1. تجربة جلب السعر كـ كريبتو أولاً
+    print(f"[LOG] جاري التحويل: {amount} من {from_c} إلى {to_c}")
+
+    # 1. تجربة العملات العادية (الدولار والجنيه والريال... إلخ) - أسرع وأضمن للعملات المحلية
+    try:
+        url_fiat = f"https://open.er-api.com/v6/latest/{from_c}"
+        res_fiat = requests.get(url_fiat).json()
+        if res_fiat.get('result') == 'success':
+            rates = res_fiat.get('rates', {})
+            if to_c in rates:
+                p = float(rates[to_c])
+                print(f"[LOG] تم الجلب بنجاح من سيرفر العملات العادية: السعر {p}")
+                return p, p * amount
+    except Exception as e:
+        print(f"[LOG] خطأ في سيرفر العملات العادية: {e}")
+
+    # 2. تجربة الكريبتو (إذا فشلت الطريقة الأولى زي btc أو eth)
     try:
         url_crypto = f"https://min-api.cryptocompare.com/data/price?fsym={from_c}&tsyms={to_c}"
-        res = requests.get(url_crypto).json()
-        if to_c in res and float(res[to_c]) > 0:
-            p = float(res[to_c])
-            return p, p * amount
-    except:
-        pass
-
-    # 2. لو منفعش (زي تحويل usd لـ egp)، بيجيبها من بنك العملات العالمي المفتوح
-    try:
-        url_fiat = "https://open.er-api.com/v6/latest/USD"
-        rates = requests.get(url_fiat).json().get('rates', {})
-        if from_c in rates and to_c in rates:
-            p = rates[to_c] / rates[from_c]
+        res_crypto = requests.get(url_crypto).json()
+        if to_c in res_crypto:
+            p = float(res_crypto[to_c])
+            print(f"[LOG] تم الجلب بنجاح من سيرفر الكريبتو: السعر {p}")
             return p, p * amount
     except Exception as e:
-        print(f"API Error: {e}")
+        print(f"[LOG] خطأ في سيرفر الكريبتو: {e}")
         
     return None, None
 
