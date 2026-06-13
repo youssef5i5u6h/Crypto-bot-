@@ -42,7 +42,7 @@ bot.set_my_commands([
     types.BotCommand("help", "المساعدة 💡")
 ])
 
-# القاموس الكامل للعملات
+# القاموس الكامل للعملات (بدون عملة إسرائيل)
 CRYPTO_MAP = {
     'btc': 'bitcoin', 'eth': 'ethereum', 'bnb': 'binancecoin', 'sol': 'solana',
     'usdt': 'tether', 'xrp': 'ripple', 'ada': 'cardano', 'doge': 'dogecoin',
@@ -143,10 +143,8 @@ def convert_currency(message):
         return
 
     text = message.text.strip().lower()
-    if 'ils' in text:
-        bot.reply_to(message, "كسم إسرائيل : فلسطين حرة 🇵🇸✊", parse_mode='Markdown')
-        return
-
+    # تم حذف الرد على الكيان
+    
     words = text.split()
     if len(words) == 3:
         try:
