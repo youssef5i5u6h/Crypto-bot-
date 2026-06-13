@@ -54,15 +54,22 @@ def get_subscription_markup():
     markup.add(types.InlineKeyboardButton("تحقق ✅", callback_data="check_sub"))
     return markup
 
-# الدالة المُحدثة والمُعززة بالـ Logs
+# الدالة المفتوحة والمجانية بالكامل والمعدلة صح
 def convert_currency(amount, from_c, to_c):
-    # تحويل الحروف للغة إنجليزية نظيفة ومسح أي مسافات مخفية
-    from_c = str(from_c).upper().strip()
-    to_c = str(to_c).upper().strip()
+    from_c = from_c.upper().strip()
+    to_c = to_c.upper().strip()
     
-    print(f"[LOG] جاري التحويل: {amount} من {from_c} إلى {to_c}")
+    # 1. تجربة جلب السعر كـ كريبتو (BTC, ETH, TON...) أولاً
+    try:
+        url_crypto = f"https://min-api.cryptocompare.com/data/price?fsym={from_c}&tsyms={to_c}"
+        res = requests.get(url_crypto).json()
+        if to_c in res and float(res[to_c]) > 0:
+            p = float(res[to_c])
+            return p, p * amount
+    except:
+        pass
 
-    # 1. تجربة العملات العادية (الدولار والجنيه والريال... إلخ) - أسرع وأضمن للعملات المحلية
+    # 2. تجربة السيرفر المجاني المفتوح للعملات العادية (USD, EGP, SAR...) - بدون تفعيل وبدون حظر
     try:
         url_fiat = f"https://open.er-api.com/v6/latest/{from_c}"
         res_fiat = requests.get(url_fiat).json()
@@ -70,21 +77,9 @@ def convert_currency(amount, from_c, to_c):
             rates = res_fiat.get('rates', {})
             if to_c in rates:
                 p = float(rates[to_c])
-                print(f"[LOG] تم الجلب بنجاح من سيرفر العملات العادية: السعر {p}")
                 return p, p * amount
-    except Exception as e:
-        print(f"[LOG] خطأ في سيرفر العملات العادية: {e}")
-
-    # 2. تجربة الكريبتو (إذا فشلت الطريقة الأولى زي btc أو eth)
-    try:
-        url_crypto = f"https://min-api.cryptocompare.com/data/price?fsym={from_c}&tsyms={to_c}"
-        res_crypto = requests.get(url_crypto).json()
-        if to_c in res_crypto:
-            p = float(res_crypto[to_c])
-            print(f"[LOG] تم الجلب بنجاح من سيرفر الكريبتو: السعر {p}")
-            return p, p * amount
-    except Exception as e:
-        print(f"[LOG] خطأ في سيرفر الكريبتو: {e}")
+    except:
+        pass
         
     return None, None
 
@@ -158,7 +153,6 @@ def handle_msg(message):
         bot.reply_to(message, "❌ صيغة غير صحيحة، يرجى كتابة الأمر هكذا: `1 btc egp`", parse_mode='Markdown')
 
 if __name__ == '__main__':
-    print("VLUX Running on Server...")
     port = int(os.environ.get('PORT', 5000))
     bot.polling(none_stop=True, timeout=60, long_polling_timeout=60)
 
