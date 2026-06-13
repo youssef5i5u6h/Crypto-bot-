@@ -2,7 +2,7 @@ import telebot
 import requests
 import urllib.parse
 import time
-import os  # ضفنا ده عشان نقرأ البورت بتاع ريلواي
+import os
 from telebot import types
 
 # التوكن
@@ -27,10 +27,9 @@ FLAG_MAP = {
     'TND': '🇹🇳', 'YER': '🇾🇪', 'GBP': '🇬🇧', 'JPY': '🇯🇵', 'CAD': '🇨🇦', 
     'AUD': '🇦🇺', 'CHF': '🇨🇭', 'CNY': '🇨🇳', 'RUB': '🇷🇺', 'TRY': '🇹🇷',
     'SDG': '🇸🇩', 'SLL': '🇸🇱', 'SOS': '🇸🇴', 'SSP': '🇸🇸', 'SYP': '🇸🇾',
-    'KGS': '🇰🇬', 'KHR': '🇰🇭', 'KMF': '🇰🇲', 'KPW': '🇰🇵', 'KRW': '🇰🇷'
+    'KGS': '🇰🇬', 'KHR': '🇰🇭', 'KMF': '🇰🇲', 'KPW': '🇰‌پ', 'KRW': '🇰🇷'
 }
 
-# الدوال المساعدة
 def get_flag(code):
     c = code.upper().strip()
     crypto_list = ['BTC', 'ETH', 'BNB', 'SOL', 'USDT', 'XRP', 'ADA', 'DOGE', 'TRX', 'TON', 'PEPE', 'FLOKI', 'SHIB']
@@ -55,18 +54,31 @@ def get_subscription_markup():
     markup.add(types.InlineKeyboardButton("تحقق ✅", callback_data="check_sub"))
     return markup
 
-# دالة تحويل العملات السريعة
+# الدالة الذكية الجديدة: بتجرب الكريبتو الأول، ولو منفعش بتجيب العملات العادية فوراً
 def convert_currency(amount, from_c, to_c):
+    from_c = from_c.upper().strip()
+    to_c = to_c.upper().strip()
+    
+    # 1. تجربة جلب السعر كـ كريبتو أولاً
     try:
-        from_c = from_c.upper().strip()
-        to_c = to_c.upper().strip()
-        url = f"https://min-api.cryptocompare.com/data/price?fsym={from_c}&tsyms={to_c}"
-        res = requests.get(url).json()
-        if to_c in res:
+        url_crypto = f"https://min-api.cryptocompare.com/data/price?fsym={from_c}&tsyms={to_c}"
+        res = requests.get(url_crypto).json()
+        if to_c in res and float(res[to_c]) > 0:
             p = float(res[to_c])
+            return p, p * amount
+    except:
+        pass
+
+    # 2. لو منفعش (زي تحويل usd لـ egp)، بيجيبها من بنك العملات العالمي المفتوح
+    try:
+        url_fiat = "https://open.er-api.com/v6/latest/USD"
+        rates = requests.get(url_fiat).json().get('rates', {})
+        if from_c in rates and to_c in rates:
+            p = rates[to_c] / rates[from_c]
             return p, p * amount
     except Exception as e:
         print(f"API Error: {e}")
+        
     return None, None
 
 # معالجات الأوامر والرسائل
@@ -92,7 +104,7 @@ def start(message):
     text = (
         "👋 أهلاً بك في بوت ڤلوكس | VLUX\n"
         "اكتب أي عملة أنت عايزها وأنا هجيبلك سعرها بالبلد بتاعتها.\n\n"
-        "💡 مثال: 1 btc egp\n"
+        "💡 مثال: 1 btc egp أو 1 usd egp\n"
         "--- --- --- --- --- --- ---\n"
         "👋 Welcome to VLUX Bot\n"
         "Type any currency you want and I will get its price for you.\n\n"
@@ -138,12 +150,8 @@ def handle_msg(message):
     else:
         bot.reply_to(message, "❌ صيغة غير صحيحة، يرجى كتابة الأمر هكذا: `1 btc egp`", parse_mode='Markdown')
 
-# خد بالك من الجزء الجديد ده المخصص لريلواي وسيرفرات الهوست
 if __name__ == '__main__':
     print("VLUX Running on Server...")
-    # فتح بورت وهمي عشان ريلواي ميقفلش البوت
     port = int(os.environ.get('PORT', 5000))
-    
-    # دالة بولينج قوية ومستقرة ومبتعملش كراش
     bot.polling(none_stop=True, timeout=60, long_polling_timeout=60)
 
