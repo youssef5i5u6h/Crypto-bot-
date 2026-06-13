@@ -81,22 +81,22 @@ def callback_query(call):
         except: pass
         bot.send_message(call.message.chat.id, "✅ تم التحقق بنجاح! اضغط /start لبدء استخدام البوت.")
     else:
-        bot.answer_callback_query(call.id, "❌ اشترك في القنوات أولاً!", show_alert=True)
+        bot.answer_callback_query(call.id, "❌ اشترك في القنوات الأول!", show_alert=True)
 
 @bot.message_handler(commands=['start'])
 def start(message):
     if not check_subscription(message.from_user.id):
-        bot.reply_to(message, "🚀 للاستمرار، يجب الانضمام للقنوات:", reply_markup=get_subscription_markup())
+        bot.reply_to(message, "🚀عشان تستخدم البوت لازم تكون ف القنوات:", reply_markup=get_subscription_markup())
         return
     
     text = (
-        "👋 أهلاً بك في بوت ڤلوكس | VLUX\n"
-        "اكتب أي عملة أنت عايزها وأنا هجيبلك سعرها بالبلد بتاعتها.\n\n"
-        "💡 مثال: 1 btc egp\n"
+        "📌 أهلاً بيك في بوت ڤلوكس | VLUX\n"
+        "اكتب أي عملة كريبتو أو عمله محليه وهقولك تساوي كام بعمله البلد ال عايزها.\n\n"
+        "🖋 مثال: 1 btc egp\n"
         "--- --- --- --- --- --- ---\n"
-        "👋 Welcome to VLUX Bot\n"
+        "📌 Welcome to VLUX Bot\n"
         "Type any currency you want and I will get its price for you.\n\n"
-        "💡 Example: 1 btc egp"
+        "🖋 Example: 1 btc egp"
     )
     
     markup = types.InlineKeyboardMarkup(row_width=1)
@@ -109,9 +109,9 @@ def start(message):
 @bot.message_handler(commands=['help'])
 def help_msg(message):
     if not check_subscription(message.from_user.id):
-        bot.reply_to(message, "🚀 للاستمرار، يجب الانضمام للقنوات:", reply_markup=get_subscription_markup())
+        bot.reply_to(message, "🚀 عشان تستخدم البوت لازم تكون ف القنوات:", reply_markup=get_subscription_markup())
         return
-    text = "💡 **مساعدة بوت ڤلوكس**\nاكتب العملة ومثال: `1 btc egp`\n\n⚠️ **لو في أي مشكلة في البوت أو مش عارف تستخدم البوت ازاي كلمني:**"
+    text = "💡 **مساعدة بوت ڤلوكس**\nا`\n⚠️ **لو في أي مشكلة في البوت أو مش عارف تستخدم البوت ازاي كلمني:**"
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("👨‍💻 مطور البوت", url=f"https://t.me/{DEV_USER.replace('@', '')}"))
     bot.reply_to(message, text, parse_mode='Markdown', reply_markup=markup)
@@ -119,7 +119,7 @@ def help_msg(message):
 @bot.message_handler(func=lambda message: True)
 def handle_msg(message):
     if not check_subscription(message.from_user.id):
-        bot.reply_to(message, "🚀 للاستمرار، يجب الانضمام للقنوات:", reply_markup=get_subscription_markup())
+        bot.reply_to(message, "🚀 عشان تستخدم البوت لازم تكون ف القنوات :", reply_markup=get_subscription_markup())
         return
     words = message.text.split()
     if len(words) == 3:
