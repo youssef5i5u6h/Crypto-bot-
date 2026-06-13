@@ -1,6 +1,7 @@
 import telebot
 import requests
 import urllib.parse
+import time
 from telebot import types
 
 # التوكن
@@ -11,13 +12,13 @@ bot = telebot.TeleBot(API_TOKEN)
 CHANNELS = ["@KU7_4", "@superr_almas"]
 DEV_USER = "@II_2P"
 
-# الأوامر كما في الصورة
+# الأوامر في البداية كما في الصورة
 bot.set_my_commands([
     types.BotCommand("start", "تشغيل البوت 🚀"),
     types.BotCommand("help", "المساعدة 💡")
 ])
 
-# القاموس (بنفس التنسيق)
+# القواميس (العملات ثم الأعلام عمودياً تحت بعضها)
 CRYPTO_MAP = {
     'btc': 'bitcoin', 'eth': 'ethereum', 'bnb': 'binancecoin', 'sol': 'solana',
     'usdt': 'tether', 'xrp': 'ripple', 'ada': 'cardano', 'doge': 'dogecoin',
@@ -29,7 +30,6 @@ CRYPTO_MAP = {
     'pepe': 'pepe', 'floki': 'floki', 'bonk': 'bonk', 'wif': 'dogwifhat', 'ton': 'the-open-network'
 }
 
-# الأعلام (تحت بعضها كما في الصورة)
 FLAG_MAP = {
     'EGP': '🇪🇬', 'USD': '🇺🇸', 'SAR': '🇸🇦',
     'KWD': '🇰🇼', 'QAR': '🇶🇦', 'BHD': '🇧🇭',
@@ -38,7 +38,7 @@ FLAG_MAP = {
     'AUD': '🇦🇺', 'CHF': '🇨🇭', 'CNY': '🇨🇳'
 }
 
-# الدوال
+# الدوال المساعدة
 def get_flag(code):
     c = code.upper().strip()
     return FLAG_MAP[c] if c in FLAG_MAP else ('🪙' if code.lower() in CRYPTO_MAP else '🏳️')
@@ -73,7 +73,7 @@ def convert_currency(amount, from_c, to_c):
     except: pass
     return None, None
 
-# الأوامر
+# معالجات الأوامر والرسائل
 @bot.callback_query_handler(func=lambda call: call.data == "check_sub")
 def callback_query(call):
     if check_subscription(call.from_user.id):
@@ -81,37 +81,47 @@ def callback_query(call):
         except: pass
         bot.send_message(call.message.chat.id, "✅ تم التحقق بنجاح! اضغط /start لبدء استخدام البوت.")
     else:
-        bot.answer_callback_query(call.id, "❌ اشترك في القنوات الأول!", show_alert=True)
+        bot.answer_callback_query(call.id, "❌ اشترك في القنوات أولاً!", show_alert=True)
 
 @bot.message_handler(commands=['start'])
 def start(message):
+    # الرد التلقائي لأمر الشراء والبرمجة (Deep Linking)
+    if message.text.startswith('/start buy_'):
+        bot.reply_to(message, "تم استلام طلبك لشراء / برمجة بوت! المطور سيتواصل معك قريباً.")
+        return
+
+    # التحقق الإجباري من الاشتراك
     if not check_subscription(message.from_user.id):
-        bot.reply_to(message, "🚀عشان تستخدم البوت لازم تكون ف القنوات:", reply_markup=get_subscription_markup())
+        bot.reply_to(message, "🚀 لازم تكون مشترك ف القنوات:", reply_markup=get_subscription_markup())
         return
     
+    # نص الترحيب الكامل (عربي + إنجليزي بالتنسيق المطلوب)
     text = (
-        "📌 أهلاً بيك في بوت ڤلوكس | VLUX\n"
-        "اكتب أي عملة كريبتو أو عمله محليه وهقولك تساوي كام بعمله البلد ال عايزها.\n\n"
-        "🖋 مثال: 1 btc egp\n"
+        "👋 أهلاً بك في بوت ڤلوكس | VLUX\n"
+        "اكتب أي عملة أنت عايزها وأنا هجيبلك سعرها بالبلد بتاعتها.\n\n"
+        "💡 مثال: 1 btc egp\n"
         "--- --- --- --- --- --- ---\n"
-        "📌 Welcome to VLUX Bot\n"
+        "👋 Welcome to VLUX Bot\n"
         "Type any currency you want and I will get its price for you.\n\n"
-        "🖋 Example: 1 btc egp"
+        "💡 Example: 1 btc egp"
     )
+    
+    # رابط الزر مضاف إليه الطابع الزمني لضمان التحديث وظهور الرد التلقائي في كل مرة
+    buy_url = f"https://t.me/{DEV_USER.replace('@', '')}?start=buy_{int(time.time())}"
     
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
         types.InlineKeyboardButton("👨‍💻 مطور البوت", url=f"https://t.me/{DEV_USER.replace('@', '')}"),
-        types.InlineKeyboardButton("🤖 شراء / برمجة بوت", url=f"https://t.me/{DEV_USER.replace('@', '')}?start=شراء_برمجة_بوت")
+        types.InlineKeyboardButton("🤖 شراء / برمجة بوت", url=buy_url)
     )
     bot.reply_to(message, text, parse_mode='Markdown', reply_markup=markup)
 
 @bot.message_handler(commands=['help'])
 def help_msg(message):
     if not check_subscription(message.from_user.id):
-        bot.reply_to(message, "🚀 عشان تستخدم البوت لازم تكون ف القنوات:", reply_markup=get_subscription_markup())
+        bot.reply_to(message, "🚀 لازم تكون مشترك ف القنوات:", reply_markup=get_subscription_markup())
         return
-    text = "💡 **مساعدة بوت ڤلوكس**\n⚠️ **لو في أي مشكلة في البوت أو مش عارف تستخدم البوت ازاي كلمني:**"
+    text = "💡 **مساعدة بوت ڤلوكس**\nاكتب العملة ومثال: `1 btc egp`\n\n⚠️ **لو في أي مشكلة في البوت أو مش عارف تستخدم البوت ازاي كلمني:**"
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("👨‍💻 مطور البوت", url=f"https://t.me/{DEV_USER.replace('@', '')}"))
     bot.reply_to(message, text, parse_mode='Markdown', reply_markup=markup)
