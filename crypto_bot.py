@@ -2,6 +2,7 @@ import telebot
 import requests
 import urllib.parse
 import time
+import os  # ضفنا ده عشان نقرأ البورت بتاع ريلواي
 from telebot import types
 
 # التوكن
@@ -18,7 +19,7 @@ bot.set_my_commands([
     types.BotCommand("help", "المساعدة 💡")
 ])
 
-# قاموس الأعلام الكامل بعد إضافة كل الدول والعملات اللي طلبتها
+# قاموس الأعلام الكامل
 FLAG_MAP = {
     'EGP': '🇪🇬', 'USD': '🇺🇸', 'SAR': '🇸🇦', 'AED': '🇦🇪', 'EUR': '🇪🇺', 
     'KWD': '🇰🇼', 'QAR': '🇶🇦', 'BHD': '🇧🇭', 'OMR': '🇴🇲', 'JOD': '🇯🇴', 
@@ -32,7 +33,6 @@ FLAG_MAP = {
 # الدوال المساعدة
 def get_flag(code):
     c = code.upper().strip()
-    # أهم العملات الرقمية لظهور رمز العملة المشفرة
     crypto_list = ['BTC', 'ETH', 'BNB', 'SOL', 'USDT', 'XRP', 'ADA', 'DOGE', 'TRX', 'TON', 'PEPE', 'FLOKI', 'SHIB']
     if c in FLAG_MAP:
         return FLAG_MAP[c]
@@ -55,15 +55,13 @@ def get_subscription_markup():
     markup.add(types.InlineKeyboardButton("تحقق ✅", callback_data="check_sub"))
     return markup
 
-# دالة تحويل العملات السريعة والمجانية (كريبتو وعادي)
+# دالة تحويل العملات السريعة
 def convert_currency(amount, from_c, to_c):
     try:
         from_c = from_c.upper().strip()
         to_c = to_c.upper().strip()
-        
         url = f"https://min-api.cryptocompare.com/data/price?fsym={from_c}&tsyms={to_c}"
         res = requests.get(url).json()
-        
         if to_c in res:
             p = float(res[to_c])
             return p, p * amount
@@ -123,5 +121,29 @@ def help_msg(message):
 @bot.message_handler(func=lambda message: True)
 def handle_msg(message):
     if not check_subscription(message.from_user.id):
-        bot.reply_to(message, "🚀 لازم تكون مشترك ف القنوات:", reply_
+        bot.reply_to(message, "🚀 لازم تكون مشترك ف القنوات:", reply_markup=get_subscription_markup())
+        return
+        
+    words = message.text.split()
+    if len(words) == 3:
+        try:
+            p, total = convert_currency(float(words[0]), words[1], words[2])
+            if p is not None:
+                txt = f"{get_flag(words[1])} **من:** {words[1].upper()}\n{get_flag(words[2])} **إلى:** {words[2].upper()}\n💰 **السعر:** {'{:,.4f}'.format(p)} {words[2].upper()}\n💵 **الإجمالي:** {'{:,.2f}'.format(total)} {words[2].upper()}"
+                bot.reply_to(message, txt, parse_mode='Markdown')
+            else:
+                bot.reply_to(message, "⚠️ عذراً، لم أتمكن من جلب السعر. تأكد من صحة رموز العملات (مثال: btc, usd, egp).")
+        except ValueError:
+            bot.reply_to(message, "❌ خطأ: يرجى إدخال رقم صحيح في البداية. مثال: `1 btc egp`", parse_mode='Markdown')
+    else:
+        bot.reply_to(message, "❌ صيغة غير صحيحة، يرجى كتابة الأمر هكذا: `1 btc egp`", parse_mode='Markdown')
+
+# خد بالك من الجزء الجديد ده المخصص لريلواي وسيرفرات الهوست
+if __name__ == '__main__':
+    print("VLUX Running on Server...")
+    # فتح بورت وهمي عشان ريلواي ميقفلش البوت
+    port = int(os.environ.get('PORT', 5000))
+    
+    # دالة بولينج قوية ومستقرة ومبتعملش كراش
+    bot.polling(none_stop=True, timeout=60, long_polling_timeout=60)
 
