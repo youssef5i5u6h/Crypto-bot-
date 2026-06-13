@@ -1,7 +1,5 @@
 import telebot
 import requests
-import urllib.parse
-import time
 import os
 from telebot import types
 
@@ -54,30 +52,30 @@ def get_subscription_markup():
     markup.add(types.InlineKeyboardButton("تحقق ✅", callback_data="check_sub"))
     return markup
 
-# الدالة المفتوحة والمجانية بالكامل والمعدلة صح
+# دالة التحويل المفتوحة والمباشرة
 def convert_currency(amount, from_c, to_c):
     from_c = from_c.upper().strip()
     to_c = to_c.upper().strip()
     
-    # 1. تجربة جلب السعر كـ كريبتو (BTC, ETH, TON...) أولاً
     try:
-        url_crypto = f"https://min-api.cryptocompare.com/data/price?fsym={from_c}&tsyms={to_c}"
-        res = requests.get(url_crypto).json()
-        if to_c in res and float(res[to_c]) > 0:
-            p = float(res[to_c])
-            return p, p * amount
-    except:
-        pass
-
-    # 2. تجربة السيرفر المجاني المفتوح للعملات العادية (USD, EGP, SAR...) - بدون تفعيل وبدون حظر
-    try:
-        url_fiat = f"https://open.er-api.com/v6/latest/{from_c}"
-        res_fiat = requests.get(url_fiat).json()
-        if res_fiat.get('result') == 'success':
-            rates = res_fiat.get('rates', {})
+        url = f"https://open.er-api.com/v6/latest/{from_c}"
+        response = requests.get(url)
+        data = response.json()
+        
+        if data.get('result') == 'success':
+            rates = data.get('rates', {})
             if to_c in rates:
                 p = float(rates[to_c])
                 return p, p * amount
+    except:
+        pass
+
+    try:
+        url_crypto = f"https://min-api.cryptocompare.com/data/price?fsym={from_c}&tsyms={to_c}"
+        res_crypto = requests.get(url_crypto).json()
+        if to_c in res_crypto:
+            p = float(res_crypto[to_c])
+            return p, p * amount
     except:
         pass
         
@@ -106,30 +104,17 @@ def start(message):
     text = (
         "👋 أهلاً بك في بوت ڤلوكس | VLUX\n"
         "اكتب أي عملة أنت عايزها وأنا هجيبلك سعرها بالبلد بتاعتها.\n\n"
-        "💡 مثال: 1 btc egp أو 1 usd egp\n"
         "--- --- --- --- --- --- ---\n"
         "👋 Welcome to VLUX Bot\n"
-        "Type any currency you want and I will get its price for you.\n\n"
-        "💡 Example: 1 btc egp"
+        "Type any currency you want and I will get its price for you."
     )
     
-    buy_url = f"https://t.me/{DEV_USER.replace('@', '')}?start=buy_{int(time.time())}"
-    
+    buy_url = f"https://t.me/{DEV_USER.replace('@', '')}?start=buy_123"
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
         types.InlineKeyboardButton("👨‍💻 مطور البوت", url=f"https://t.me/{DEV_USER.replace('@', '')}"),
         types.InlineKeyboardButton("🤖 شراء / برمجة بوت", url=buy_url)
     )
-    bot.reply_to(message, text, parse_mode='Markdown', reply_markup=markup)
-
-@bot.message_handler(commands=['help'])
-def help_msg(message):
-    if not check_subscription(message.from_user.id):
-        bot.reply_to(message, "🚀 لازم تكون مشترك ف القنوات:", reply_markup=get_subscription_markup())
-        return
-    text = "💡 **مساعدة بوت ڤلوكس**\nاكتب العملة ومثال: `1 btc egp`\n\n⚠️ **لو في أي مشكلة في البوت أو مش عارف تستخدم البوت ازاي كلمني:**"
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("👨‍💻 مطور البوت", url=f"https://t.me/{DEV_USER.replace('@', '')}"))
     bot.reply_to(message, text, parse_mode='Markdown', reply_markup=markup)
 
 @bot.message_handler(func=lambda message: True)
@@ -141,18 +126,20 @@ def handle_msg(message):
     words = message.text.split()
     if len(words) == 3:
         try:
-            p, total = convert_currency(float(words[0]), words[1], words[2])
+            val = float(words[0])
+            p, total = convert_currency(val, words[1], words[2])
+            
             if p is not None:
                 txt = f"{get_flag(words[1])} **من:** {words[1].upper()}\n{get_flag(words[2])} **إلى:** {words[2].upper()}\n💰 **السعر:** {'{:,.4f}'.format(p)} {words[2].upper()}\n💵 **الإجمالي:** {'{:,.2f}'.format(total)} {words[2].upper()}"
                 bot.reply_to(message, txt, parse_mode='Markdown')
             else:
-                bot.reply_to(message, "⚠️ عذراً، لم أتمكن من جلب السعر. تأكد من صحة رموز العملات (مثال: btc, usd, egp).")
+                bot.reply_to(message, "⚠️ عذراً، لم أتمكن من جلب السعر. تأكد من صحة رموز العملات.")
         except ValueError:
-            bot.reply_to(message, "❌ خطأ: يرجى إدخال رقم صحيح في البداية. مثال: `1 btc egp`", parse_mode='Markdown')
+            pass
     else:
-        bot.reply_to(message, "❌ صيغة غير صحيحة، يرجى كتابة الأمر هكذا: `1 btc egp`", parse_mode='Markdown')
+        pass
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    bot.polling(none_stop=True, timeout=60, long_polling_timeout=60)
+    print("VLUX Running...")
+    bot.polling(none_stop=True)
 
