@@ -119,12 +119,14 @@ def help_msg(message):
 @bot.message_handler(func=lambda message: True)
 def handle_msg(message):
     if not check_subscription(message.from_user.id):
-        bot.reply_to(message, "🚀 عشان تستخدم البوت لازم تكون ف القنوات :", reply_markup=get_subscription_markup())
+        bot.reply_to(message, "🚀 لازم تكون مشترك ف القنوات:", reply_markup=get_subscription_markup())
         return
     words = message.text.split()
     if len(words) == 3:
         p, total = convert_currency(float(words[0]), words[1], words[2])
-        if p: bot.reply_to(message, f"{get_flag(words[1])} **من:** {words[1].upper()}\n{get_flag(words[2])} **إلى:** {words[2].upper()}\n💰 **السعر:** {'{:,.4f}'.format(p)} {words[2].upper()}\n💵 **الإجمالي:** {'{:,.2f}'.format(total)} {words[2].upper()}", parse_mode='Markdown')
+        if p:
+            txt = f"{get_flag(words[1])} **من:** {words[1].upper()}\n{get_flag(words[2])} **إلى:** {words[2].upper()}\n💰 **السعر:** {'{:,.4f}'.format(p)} {words[2].upper()}\n💵 **الإجمالي:** {'{:,.2f}'.format(total)} {words[2].upper()}"
+            bot.reply_to(message, txt, parse_mode='Markdown')
 
 print("VLUX Running...")
 bot.infinity_polling()
