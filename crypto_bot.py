@@ -88,12 +88,23 @@ def start(message):
     if not check_subscription(message.from_user.id):
         bot.reply_to(message, "🚀 للاستمرار، يجب الانضمام للقنوات:", reply_markup=get_subscription_markup())
         return
+    
+    text = (
+        "👋 أهلاً بك في بوت ڤلوكس | VLUX\n"
+        "اكتب أي عملة أنت عايزها وأنا هجيبلك سعرها بالبلد بتاعتها.\n\n"
+        "💡 مثال: 1 btc egp\n"
+        "--- --- --- --- --- --- ---\n"
+        "👋 Welcome to VLUX Bot\n"
+        "Type any currency you want and I will get its price for you.\n\n"
+        "💡 Example: 1 btc egp"
+    )
+    
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
         types.InlineKeyboardButton("👨‍💻 مطور البوت", url=f"https://t.me/{DEV_USER.replace('@', '')}"),
         types.InlineKeyboardButton("🤖 شراء / برمجة بوت", url=f"https://t.me/{DEV_USER.replace('@', '')}?start=شراء_برمجة_بوت")
     )
-    bot.reply_to(message, "👋 أهلاً بك في بوت ڤلوكس | VLUX\nاكتب العملة ومثال: `1 btc egp`", parse_mode='Markdown', reply_markup=markup)
+    bot.reply_to(message, text, parse_mode='Markdown', reply_markup=markup)
 
 @bot.message_handler(commands=['help'])
 def help_msg(message):
