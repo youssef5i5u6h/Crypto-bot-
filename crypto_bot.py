@@ -3,12 +3,13 @@ import requests
 import urllib.parse
 from telebot import types
 
-# التوكن الجديد
+# التوكن
 API_TOKEN = '8732953077:AAE3_IMxo_lTHRE8l63Cc2np22e_UwWp0JQ'
 bot = telebot.TeleBot(API_TOKEN)
 
-# --- نظام الاشتراك الإجباري ---
+# --- القنوات والتحقق ---
 CHANNELS = ["@KU7_4", "@superr_almas"]
+DEV_USER = "@II_2P"
 
 def check_subscription(user_id):
     for channel in CHANNELS:
@@ -31,9 +32,9 @@ def callback_query(call):
         bot.answer_callback_query(call.id, "تم التحقق بنجاح! ✅")
         try: bot.delete_message(call.message.chat.id, call.message.message_id)
         except: pass
-        send_welcome(call.message)
+        bot.send_message(call.message.chat.id, "✅ تم التحقق بنجاح! اضغط /start لبدء استخدام البوت.")
     else:
-        bot.answer_callback_query(call.id, "لم تشترك بعد! ❌ اشترك أولاً ثم اضغط تحقق.", show_alert=True)
+        bot.answer_callback_query(call.id, "❌ لم تشترك بعد! اشترك أولاً ثم اضغط تحقق.", show_alert=True)
 
 # 1. تعيين الأوامر
 bot.set_my_commands([
@@ -99,7 +100,7 @@ def convert_any_currency(amount, from_currency, to_currency):
         return None, None
     except: return None, None
 
-@bot.message_handler(commands=['start', 'help'])
+@bot.message_handler(commands=['start'])
 def send_welcome(message):
     if not check_subscription(message.from_user.id):
         bot.reply_to(message, "🚀 للاستمرار في استخدام البوت، يجب الانضمام للقنوات:", reply_markup=get_subscription_markup())
@@ -110,16 +111,31 @@ def send_welcome(message):
         "اكتب أي عملة أنت عايزها وأنا هجيبلك سعرها بالبلد بتاعتها.\n\n"
         "💡 **مثال:** `1 btc egp`"
     )
+    # رابط للرد التلقائي للشراء
     preset_msg = "شراء / برمجة بوت"
-    encoded_msg = urllib.parse.quote(preset_msg)
-    direct_chat_url = f"tg://resolve?domain=II_2P&text={encoded_msg}"
+    buy_url = f"https://t.me/{DEV_USER.replace('@', '')}?start={urllib.parse.quote(preset_msg)}"
     
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
-        types.InlineKeyboardButton("👨‍💻 مطور البوت | Developer", url=direct_chat_url),
-        types.InlineKeyboardButton("🤖 شراء / برمجة بوت", url=direct_chat_url)
+        types.InlineKeyboardButton("👨‍💻 مطور البوت | Developer", url=f"https://t.me/{DEV_USER.replace('@', '')}"),
+        types.InlineKeyboardButton("🤖 شراء / برمجة بوت", url=buy_url)
     )
     bot.reply_to(message, welcome_text, parse_mode='Markdown', reply_markup=markup)
+
+@bot.message_handler(commands=['help'])
+def help_msg(message):
+    if not check_subscription(message.from_user.id):
+        bot.reply_to(message, "🚀 للاستمرار في استخدام البوت، يجب الانضمام للقنوات:", reply_markup=get_subscription_markup())
+        return
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("👨‍💻 مطور البوت | Developer", url=f"https://t.me/{DEV_USER.replace('@', '')}"))
+    text = (
+        "💡 **مساعدة بوت ڤلوكس**\n"
+        "اكتب العملة ومثال: `1 btc egp`\n\n"
+        "⚠️ **لو في أي مشكلة في البوت أو مش عارف تستخدمه إزاي، كلم المطور:**\n"
+        f"👨‍💻 {DEV_USER}"
+    )
+    bot.reply_to(message, text, parse_mode='Markdown', reply_markup=markup)
 
 @bot.message_handler(func=lambda message: True)
 def convert_currency(message):
@@ -149,16 +165,8 @@ def convert_currency(message):
                     f"💰 **الإجمالي:** {'{:,.2f}'.format(t_price)} {to_c.upper()}"
                 )
                 bot.reply_to(message, resp, parse_mode='Markdown')
-            else:
-                if message.chat.type == 'private':
-                    bot.reply_to(message, "❌ لم يتم العثور على العملة المطلوبة.", parse_mode='Markdown')
-        except:
-            if message.chat.type == 'private':
-                bot.reply_to(message, "❌ صيغة خطأ! جرب: `1 btc egp`", parse_mode='Markdown')
-    else:
-        if message.chat.type == 'private':
-            bot.reply_to(message, "❌ صيغة خطأ! جرب: `1 btc egp`", parse_mode='Markdown')
+        except: pass
 
-print("VLUX Full Version with Check Button is Running...")
+print("VLUX Full Version Running...")
 bot.infinity_polling()
 
