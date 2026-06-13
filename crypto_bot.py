@@ -59,19 +59,20 @@ def get_subscription_markup():
 
 def convert_currency(amount, from_c, to_c):
     try:
-        c_id = CRYPTO_MAP.get(from_c.lower())
-        if c_id:
-            res = requests.get(f"https://api.coingecko.com/api/v3/simple/price?ids={c_id}&vs_currencies={to_c.lower()}").json()
-            if c_id in res and to_c.lower() in res[c_id]:
-                p = res[c_id][to_c.lower()]
-                return p, p * amount
-        url = "https://open.er-api.com/v6/latest/USD"
-        rates = requests.get(url).json().get('rates', {})
-        if from_c.upper() in rates and to_c.upper() in rates:
-            p = rates[to_c.upper()] / rates[from_c.upper()]
+        from_c = from_c.upper().strip()
+        to_c = to_c.upper().strip()
+        
+        # رابط سريع ومفتوح ومجاني لكل العملات والكريبتو
+        url = f"https://min-api.cryptocompare.com/data/price?fsym={from_c}&tsyms={to_c}"
+        res = requests.get(url).json()
+        
+        if to_c in res:
+            p = float(res[to_c])
             return p, p * amount
-    except: pass
+    except Exception as e:
+        print(f"Error in API: {e}")
     return None, None
+
 
 # معالجات الأوامر والرسائل
 @bot.callback_query_handler(func=lambda call: call.data == "check_sub")
