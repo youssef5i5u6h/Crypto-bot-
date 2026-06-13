@@ -11,7 +11,7 @@ bot = telebot.TeleBot(API_TOKEN)
 CHANNELS = ["@KU7_4", "@superr_almas"]
 DEV_USER = "@II_2P"
 
-# الأوامر
+# الأوامر في قائمة التليجرام
 bot.set_my_commands([
     types.BotCommand("start", "تشغيل البوت 🚀"),
     types.BotCommand("help", "المساعدة 💡")
@@ -115,6 +115,16 @@ def start(message):
         types.InlineKeyboardButton("👨‍💻 مطور البوت", url=f"https://t.me/{DEV_USER.replace('@', '')}"),
         types.InlineKeyboardButton("🤖 شراء / برمجة بوت", url=buy_url)
     )
+    bot.reply_to(message, text, parse_mode='Markdown', reply_markup=markup)
+
+@bot.message_handler(commands=['help'])
+def help_msg(message):
+    if not check_subscription(message.from_user.id):
+        bot.reply_to(message, "🚀 لازم تكون مشترك ف القنوات:", reply_markup=get_subscription_markup())
+        return
+    text = "💡 **مساعدة بوت ڤلوكس**\n\n⚠️ **لو في أي مشكلة في البوت أو مش عارف تستخدم البوت ازاي كلمني:**"
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("👨‍💻 مطور البوت", url=f"https://t.me/{DEV_USER.replace('@', '')}"))
     bot.reply_to(message, text, parse_mode='Markdown', reply_markup=markup)
 
 @bot.message_handler(func=lambda message: True)
