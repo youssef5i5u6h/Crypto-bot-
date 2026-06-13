@@ -17,6 +17,14 @@ bot.set_my_commands([
     types.BotCommand("help", "المساعدة 💡")
 ])
 
+# قاموس التشفير الأساسي للـ CoinGecko
+CRYPTO_MAP = {
+    'btc': 'bitcoin', 'eth': 'ethereum', 'bnb': 'binancecoin', 'sol': 'solana', 
+    'usdt': 'tether', 'xrp': 'ripple', 'ada': 'cardano', 'doge': 'dogecoin', 
+    'trx': 'tron', 'ton': 'the-open-network', 'pepe': 'pepe', 'floki': 'floki', 
+    'shib': 'shiba-inu'
+}
+
 # قاموس الأعلام الكامل
 FLAG_MAP = {
     'EGP': '🇪🇬', 'USD': '🇺🇸', 'SAR': '🇸🇦', 'AED': '🇦🇪', 'EUR': '🇪🇺', 
@@ -30,10 +38,9 @@ FLAG_MAP = {
 
 def get_flag(code):
     c = code.upper().strip()
-    crypto_list = ['BTC', 'ETH', 'BNB', 'SOL', 'USDT', 'XRP', 'ADA', 'DOGE', 'TRX', 'TON', 'PEPE', 'FLOKI', 'SHIB']
     if c in FLAG_MAP:
         return FLAG_MAP[c]
-    elif c in crypto_list:
+    elif code.lower() in CRYPTO_MAP:
         return '🪙'
     else:
         return '🏳️'
@@ -52,33 +59,47 @@ def get_subscription_markup():
     markup.add(types.InlineKeyboardButton("تحقق ✅", callback_data="check_sub"))
     return markup
 
-# دالة التحويل المفتوحة والمباشرة
+# دالة التحويل الاحترافية الشاملة
 def convert_currency(amount, from_c, to_c):
-    from_c = from_c.upper().strip()
-    to_c = to_c.upper().strip()
+    from_c = from_c.lower().strip()
+    to_c = to_c.lower().strip()
     
+    # 1. لو العملة الأساسية كريبتو (تشفير)
+    if from_c in CRYPTO_MAP:
+        try:
+            coin_id = CRYPTO_MAP[from_c]
+            url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies={to_c}"
+            res = requests.get(url).json()
+            if coin_id in res and to_c in res[coin_id]:
+                p = float(res[coin_id][to_c])
+                return p, p * amount
+        except:
+            pass
+
+    # 2. لجميع العملات العادية (جنيه، ريال، دولار...) أو لو الكريبتو كـ عملة ثانية
     try:
-        url = f"https://open.er-api.com/v6/latest/{from_c}"
-        response = requests.get(url)
-        data = response.json()
-        
-        if data.get('result') == 'success':
-            rates = data.get('rates', {})
-            if to_c in rates:
-                p = float(rates[to_c])
+        url_fiat = f"https://open.er-api.com/v6/latest/{from_c.upper()}"
+        res_fiat = requests.get(url_fiat).json()
+        if res_fiat.get('result') == 'success':
+            rates = res_fiat.get('rates', {})
+            if to_c.upper() in rates:
+                p = float(rates[to_c.upper()])
                 return p, p * amount
     except:
         pass
 
-    try:
-        url_crypto = f"https://min-api.cryptocompare.com/data/price?fsym={from_c}&tsyms={to_c}"
-        res_crypto = requests.get(url_crypto).json()
-        if to_c in res_crypto:
-            p = float(res_crypto[to_c])
-            return p, p * amount
-    except:
-        pass
-        
+    # 3. خطة إنقاذ أخيرة (لو التحويل من عملة عادية لكريبتو مثل usd لـ btc)
+    if to_c in CRYPTO_MAP:
+        try:
+            coin_id = CRYPTO_MAP[to_c]
+            url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies={from_c}"
+            res = requests.get(url).json()
+            if coin_id in res and from_c in res[coin_id]:
+                p = 1 / float(res[coin_id][from_c])
+                return p, p * amount
+        except:
+            pass
+            
     return None, None
 
 # معالجات الأوامر والرسائل
