@@ -7,7 +7,7 @@ from telebot import types
 API_TOKEN = '8732953077:AAE3_IMxo_lTHRE8l63Cc2np22e_UwWp0JQ'
 bot = telebot.TeleBot(API_TOKEN)
 
-# --- القنوات والتحقق ---
+# --- نظام الاشتراك الإجباري ---
 CHANNELS = ["@KU7_4", "@superr_almas"]
 DEV_USER = "@II_2P"
 
@@ -38,8 +38,8 @@ def callback_query(call):
 
 # 1. تعيين الأوامر
 bot.set_my_commands([
-    types.BotCommand("start", "تشغيل البوت وعرض الأزرار 🚀"),
-    types.BotCommand("help", "طريقة استخدام البوت الفورية 💡")
+    types.BotCommand("start", "تشغيل البوت 🚀"),
+    types.BotCommand("help", "المساعدة 💡")
 ])
 
 # القاموس الكامل للعملات
@@ -111,13 +111,12 @@ def send_welcome(message):
         "اكتب أي عملة أنت عايزها وأنا هجيبلك سعرها بالبلد بتاعتها.\n\n"
         "💡 **مثال:** `1 btc egp`"
     )
-    # رابط للرد التلقائي للشراء
     preset_msg = "شراء / برمجة بوت"
     buy_url = f"https://t.me/{DEV_USER.replace('@', '')}?start={urllib.parse.quote(preset_msg)}"
     
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
-        types.InlineKeyboardButton("👨‍💻 مطور البوت | Developer", url=f"https://t.me/{DEV_USER.replace('@', '')}"),
+        types.InlineKeyboardButton("👨‍💻 مطور البوت", url=f"https://t.me/{DEV_USER.replace('@', '')}"),
         types.InlineKeyboardButton("🤖 شراء / برمجة بوت", url=buy_url)
     )
     bot.reply_to(message, welcome_text, parse_mode='Markdown', reply_markup=markup)
@@ -127,14 +126,14 @@ def help_msg(message):
     if not check_subscription(message.from_user.id):
         bot.reply_to(message, "🚀 للاستمرار في استخدام البوت، يجب الانضمام للقنوات:", reply_markup=get_subscription_markup())
         return
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("👨‍💻 مطور البوت | Developer", url=f"https://t.me/{DEV_USER.replace('@', '')}"))
+    
     text = (
         "💡 **مساعدة بوت ڤلوكس**\n"
         "اكتب العملة ومثال: `1 btc egp`\n\n"
-        "⚠️ **لو في أي مشكلة في البوت أو مش عارف تستخدمه إزاي، كلم المطور:**\n"
-        f"👨‍💻 {DEV_USER}"
+        "⚠️ **لو في أي مشكلة في البوت أو مش عارف تستخدم البوت ازاي كلمني:**"
     )
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("👨‍💻 مطور البوت", url=f"https://t.me/{DEV_USER.replace('@', '')}"))
     bot.reply_to(message, text, parse_mode='Markdown', reply_markup=markup)
 
 @bot.message_handler(func=lambda message: True)
